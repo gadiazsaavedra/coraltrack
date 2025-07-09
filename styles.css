@@ -59,17 +59,20 @@ header h1 {
 
 .tab-btn {
     flex: 1;
-    padding: 1rem;
+    padding: 1.5rem 1rem;
     border: none;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.15);
     color: white;
-    border-radius: 0.75rem;
+    border-radius: 1rem;
     cursor: pointer;
-    transition: all 0.3s;
-    font-size: 1rem;
-    font-weight: 500;
-    min-height: 48px;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    font-weight: 600;
+    min-height: 64px;
     touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tab-btn:active {
@@ -223,6 +226,332 @@ header h1 {
 
 .btn-secondary:hover {
     background: #d32f2f;
+}
+
+.backup-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+}
+
+.btn-backup {
+    flex: 1;
+    padding: 0.75rem;
+    background: #673AB7;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 2px 6px rgba(103, 58, 183, 0.3);
+}
+
+.btn-backup:hover {
+    background: #5E35B1;
+}
+
+/* Mejorar contraste */
+.optimal .numero { color: #2E7D32; }
+.optimal .estado { background: #C8E6C9; color: #1B5E20; }
+
+.acceptable .numero { color: #E65100; }
+.acceptable .estado { background: #FFE0B2; color: #BF360C; }
+
+.warning .numero { color: #C62828; }
+.warning .estado { background: #FFCDD2; color: #B71C1C; }
+
+/* Acordeones para reducir scroll */
+.accordion {
+    background: white;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.accordion-header {
+    padding: 1.25rem;
+    background: #f8f9fa;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.accordion-header:hover {
+    background: #e9ecef;
+}
+
+.accordion-header.active {
+    background: #2196F3;
+    color: white;
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.accordion-content.active {
+    max-height: 2000px;
+    padding: 1.25rem;
+}
+
+/* Form Wizard Styles */
+.form-wizard {
+    background: white;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.wizard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.wizard-header h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.step {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+}
+
+.step.active {
+    background: white;
+    color: #667eea;
+    transform: scale(1.1);
+}
+
+.step-line {
+    width: 60px;
+    height: 3px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+}
+
+.form-step {
+    display: none;
+    padding: 2rem;
+}
+
+.form-step.active {
+    display: block;
+}
+
+.input-with-calc {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.input-with-calc input {
+    flex: 1;
+}
+
+.calc-btn {
+    width: 48px;
+    height: 48px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calc-btn:hover {
+    background: #1976D2;
+    transform: scale(1.05);
+}
+
+.btn-skip {
+    width: 100%;
+    padding: 1rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.3s;
+}
+
+.btn-skip:hover {
+    background: #45a049;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.form-buttons .btn-secondary {
+    flex: 1;
+}
+
+.form-buttons .btn-primary {
+    flex: 2;
+}
+
+/* Onboarding Styles */
+.onboarding-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    padding: 2rem;
+}
+
+.onboarding-modal.show {
+    opacity: 1;
+}
+
+.onboarding-content {
+    background: white;
+    border-radius: 1.5rem;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transform: translateY(20px);
+    transition: transform 0.3s;
+}
+
+.onboarding-modal.show .onboarding-content {
+    transform: translateY(0);
+}
+
+.onboarding-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 2rem 1rem;
+    border-radius: 1.5rem 1.5rem 0 0;
+    text-align: center;
+}
+
+.onboarding-header h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.onboarding-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.onboarding-body {
+    padding: 2rem;
+    text-align: center;
+}
+
+.onboarding-body p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #555;
+    margin: 0;
+}
+
+.onboarding-footer {
+    padding: 1rem 2rem 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.onboarding-footer .btn-secondary {
+    flex: 1;
+    padding: 1rem;
+    font-size: 1rem;
+}
+
+.onboarding-footer .btn-primary {
+    flex: 2;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .onboarding-modal {
+        padding: 1rem;
+    }
+    
+    .onboarding-header {
+        padding: 1.5rem 1.5rem 1rem;
+    }
+    
+    .onboarding-body {
+        padding: 1.5rem;
+    }
+    
+    .onboarding-footer {
+        padding: 1rem 1.5rem 1.5rem;
+        flex-direction: column;
+    }
+    
+    .onboarding-footer .btn-secondary,
+    .onboarding-footer .btn-primary {
+        flex: none;
+    }
 }
 
 .chart-status {

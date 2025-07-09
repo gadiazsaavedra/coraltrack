@@ -32,59 +32,111 @@
                     <button id="datos-ejemplo" class="btn-example">📊 Ver Datos Ejemplo</button>
                     <button id="limpiar-datos" class="btn-secondary">🗑️ Limpiar Todo</button>
                 </div>
+                
+                <div class="backup-buttons">
+                    <button id="exportar-datos" class="btn-backup">💾 Exportar Datos</button>
+                    <button id="importar-datos" class="btn-backup">📁 Importar Datos</button>
+                    <button id="reiniciar-tour" class="btn-backup">🎓 Ver Tour</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
 
                 <div class="charts-container">
                     <div id="charts"></div>
                 </div>
                 
-                <form id="parametros-form" class="form-container">
-                    <div class="form-group">
-                        <label for="fecha">Fecha de Medición</label>
-                        <input type="date" id="fecha" name="fecha" required>
+                <div class="form-wizard">
+                    <div class="wizard-header">
+                        <h3>📝 Nueva Medición</h3>
+                        <div class="wizard-steps">
+                            <div class="step active" data-step="1">1</div>
+                            <div class="step-line"></div>
+                            <div class="step" data-step="2">2</div>
+                        </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="densidad">Densidad (Salinidad)</label>
-                        <input type="number" id="densidad" name="densidad" step="0.001" placeholder="1.025">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="kh">KH (Alcalinidad)</label>
-                        <input type="number" id="kh" name="kh" step="0.1" placeholder="8.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="calcio">Calcio (Ca) - ppm</label>
-                        <input type="number" id="calcio" name="calcio" step="1" placeholder="420">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="magnesio">Magnesio (Mg) - ppm</label>
-                        <input type="number" id="magnesio" name="magnesio" step="1" placeholder="1350">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="nitratos">Nitratos (NO₃) - ppm</label>
-                        <input type="number" id="nitratos" name="nitratos" step="0.1" placeholder="5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="fosfatos">Fosfatos (PO₄) - ppm</label>
-                        <input type="number" id="fosfatos" name="fosfatos" step="0.01" placeholder="0.03">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="temperatura">Temperatura (°C)</label>
-                        <input type="number" id="temperatura" name="temperatura" step="0.1" placeholder="25.5">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="notas">Notas</label>
-                        <textarea id="notas" name="notas" rows="4" placeholder="Observaciones cualitativas..."></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary">Guardar Medición</button>
-                </form>
+                    <form id="parametros-form" class="form-container">
+                        <!-- Paso 1: Parámetros Básicos -->
+                        <div id="step-1" class="form-step active">
+                            <h4 style="margin-bottom: 1.5rem; color: #2196F3; text-align: center;">🌊 Parámetros Esenciales</h4>
+                            
+                            <div class="form-group">
+                                <label for="fecha">Fecha de Medición</label>
+                                <input type="date" id="fecha" name="fecha" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="kh">📊 KH (Alcalinidad) - dKH</label>
+                                <div class="input-with-calc">
+                                    <input type="number" id="kh" name="kh" step="0.1" placeholder="8.5">
+                                    <button type="button" class="calc-btn" onclick="app.mostrarCalculadora('kh', 'KH', document.getElementById('kh').value || 8)">🧮</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="nitratos">🟡 Nitratos (NO₃) - ppm</label>
+                                <div class="input-with-calc">
+                                    <input type="number" id="nitratos" name="nitratos" step="0.1" placeholder="5">
+                                    <button type="button" class="calc-btn" onclick="app.mostrarCalculadora('nitratos', 'Nitratos', document.getElementById('nitratos').value || 5)">🧮</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="temperatura">🌡️ Temperatura - °C</label>
+                                <input type="number" id="temperatura" name="temperatura" step="0.1" placeholder="25.5">
+                            </div>
+                            
+                            <button type="button" class="btn-primary" onclick="app.nextStep()">
+                                Continuar →
+                            </button>
+                            
+                            <button type="button" class="btn-skip" onclick="app.guardarSoloBasicos()">
+                                ✅ Guardar Solo Básicos
+                            </button>
+                        </div>
+                        
+                        <!-- Paso 2: Parámetros Avanzados -->
+                        <div id="step-2" class="form-step">
+                            <h4 style="margin-bottom: 1.5rem; color: #673AB7; text-align: center;">🔬 Parámetros Avanzados</h4>
+                            
+                            <div class="form-group">
+                                <label for="densidad">🌊 Densidad (Salinidad)</label>
+                                <input type="number" id="densidad" name="densidad" step="0.001" placeholder="1.025">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="calcio">🧡 Calcio (Ca) - ppm</label>
+                                <div class="input-with-calc">
+                                    <input type="number" id="calcio" name="calcio" step="1" placeholder="420">
+                                    <button type="button" class="calc-btn" onclick="app.mostrarCalculadora('calcio', 'Calcio', document.getElementById('calcio').value || 420)">🧮</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="magnesio">🔵 Magnesio (Mg) - ppm</label>
+                                <input type="number" id="magnesio" name="magnesio" step="1" placeholder="1350">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="fosfatos">🟣 Fosfatos (PO₄) - ppm</label>
+                                <input type="number" id="fosfatos" name="fosfatos" step="0.01" placeholder="0.03">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notas">📝 Notas y Observaciones</label>
+                                <textarea id="notas" name="notas" rows="3" placeholder="Ej: Cambio de agua 20%, corales con buena coloración..."></textarea>
+                            </div>
+                            
+                            <div class="form-buttons">
+                                <button type="button" class="btn-secondary" onclick="app.prevStep()">
+                                    ← Atrás
+                                </button>
+                                <button type="submit" class="btn-primary">
+                                    💾 Guardar Completo
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
 
                 <div class="historial-container">
                     <h3>Historial de Mediciones</h3>

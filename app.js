@@ -3,10 +3,18 @@ class CoralTrack {
         this.parametros = JSON.parse(localStorage.getItem('parametros')) || [];
         this.fotos = JSON.parse(localStorage.getItem('fotos')) || { pachyclavularia: [], palythoa: [] };
         this.charts = {};
+        this.renderTimeout = null;
         
         // No cargar datos automáticamente
         
         this.init();
+    }
+    
+    debounce(func, wait) {
+        return (...args) => {
+            clearTimeout(this.renderTimeout);
+            this.renderTimeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
     
     cargarDatosEjemplo() {
@@ -46,6 +54,15 @@ class CoralTrack {
         this.renderAvanzado();
         this.checkAlerts();
         this.setupReminders();
+        this.checkOnboarding();
+        
+        // Crear función de render optimizada
+        this.debouncedRender = this.debounce(() => {
+            this.renderDashboard();
+            this.renderCharts();
+            this.renderHistorial();
+            this.checkAlerts();
+        }, 300);
     }
 
     setupTabs() {
@@ -81,11 +98,24 @@ class CoralTrack {
             console.log('Botón clickeado');
             this.cargarDatosEjemplo();
             console.log('Datos cargados:', this.parametros.length);
-            this.renderDashboard();
-            this.renderCharts();
-            this.renderHistorial();
-            this.checkAlerts();
+            this.debouncedRender();
             this.mostrarConfirmacion('Datos de ejemplo cargados');
+        });
+        
+        document.getElementById('exportar-datos').addEventListener('click', () => {
+            this.exportarDatos();
+        });
+        
+        document.getElementById('importar-datos').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+        
+        document.getElementById('import-file').addEventListener('change', (e) => {
+            this.importarDatos(e.target.files[0]);
+        });
+        
+        document.getElementById('reiniciar-tour').addEventListener('click', () => {
+            this.showOnboarding();
         });
     }
 
@@ -158,10 +188,7 @@ class CoralTrack {
         // Mostrar confirmación visual
         this.mostrarConfirmacion('Medición guardada exitosamente');
         
-        this.renderDashboard();
-        this.renderCharts();
-        this.renderHistorial();
-        this.checkAlerts();
+        this.debouncedRender();
         document.getElementById('parametros-form').reset();
         this.setFechaActual();
     }
@@ -994,6 +1021,240 @@ class CoralTrack {
         
         const medicionesRecientes = fechas.filter(f => f >= hace30Dias);
         return medicionesRecientes.length >= dias / 7;
+    }
+    
+    exportarDatos() {
+        const datos = {
+            parametros: this.parametros,
+            fotos: this.fotos,
+            notasParametros: JSON.parse(localStorage.getItem('notasParametros')) || {},
+            volumenAcuario: localStorage.getItem('volumenAcuario') || 200,
+            fechaExport: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `coraltrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.mostrarConfirmacion('Datos exportados exitosamente');
+    }
+    
+    importarDatos(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const datos = JSON.parse(e.target.result);
+                
+                if (datos.parametros && Array.isArray(datos.parametros)) {
+                    if (confirm('¿Importar datos? Esto reemplazará todos los datos actuales.')) {
+                        this.parametros = datos.parametros;
+                        this.fotos = datos.fotos || { pachyclavularia: [], palythoa: [] };
+                        
+                        localStorage.setItem('parametros', JSON.stringify(this.parametros));
+                        localStorage.setItem('fotos', JSON.stringify(this.fotos));
+                        
+                        if (datos.notasParametros) {
+                            localStorage.setItem('notasParametros', JSON.stringify(datos.notasParametros));
+                        }
+                        
+                        if (datos.volumenAcuario) {
+                            localStorage.setItem('volumenAcuario', datos.volumenAcuario);
+                        }
+                        
+                        this.debouncedRender();
+                        this.renderFotos();
+                        this.renderAvanzado();
+                        this.mostrarConfirmacion('Datos importados exitosamente');
+                    }
+                } else {
+                    alert('Archivo inválido. Selecciona un backup de CoralTrack.');
+                }
+            } catch (error) {
+                alert('Error al leer el archivo. Verifica que sea un backup válido.');
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    toggleAccordion(header) {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.accordion-icon');
+        
+        header.classList.toggle('active');
+        content.classList.toggle('active');
+        
+        if (content.classList.contains('active')) {
+            icon.textContent = '▲';
+        } else {
+            icon.textContent = '▼';
+        }
+    }
+    
+    nextStep() {
+        document.getElementById('step-1').classList.remove('active');
+        document.getElementById('step-2').classList.add('active');
+        document.querySelector('[data-step="1"]').classList.remove('active');
+        document.querySelector('[data-step="2"]').classList.add('active');
+    }
+    
+    prevStep() {
+        document.getElementById('step-2').classList.remove('active');
+        document.getElementById('step-1').classList.add('active');
+        document.querySelector('[data-step="2"]').classList.remove('active');
+        document.querySelector('[data-step="1"]').classList.add('active');
+    }
+    
+    guardarSoloBasicos() {
+        const formData = new FormData(document.getElementById('parametros-form'));
+        const parametro = { fecha: formData.get('fecha') };
+        
+        // Solo guardar campos básicos
+        ['kh', 'nitratos', 'temperatura'].forEach(field => {
+            const value = formData.get(field);
+            parametro[field] = value ? parseFloat(value) : null;
+        });
+        
+        this.parametros.push(parametro);
+        localStorage.setItem('parametros', JSON.stringify(this.parametros));
+        
+        this.debouncedRender();
+        this.mostrarConfirmacion('✅ Parámetros básicos guardados');
+        
+        // Reset form
+        document.getElementById('parametros-form').reset();
+        this.setFechaActual();
+        this.prevStep();
+    }
+    
+    checkOnboarding() {
+        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+        const hasData = this.parametros.length > 0;
+        
+        if (!hasSeenOnboarding && !hasData) {
+            setTimeout(() => {
+                this.showOnboarding();
+            }, 1000);
+        }
+    }
+    
+    showOnboarding() {
+        const onboardingSteps = [
+            {
+                title: '👋 ¡Bienvenido a CoralTrack!',
+                content: 'Tu asistente personal para mantener un acuario de arrecife saludable.',
+                action: 'Comenzar Tour'
+            },
+            {
+                title: '📊 ¿Primera vez?',
+                content: 'Te recomendamos cargar datos de ejemplo para ver cómo funciona la app.',
+                action: 'Ver Datos Ejemplo',
+                callback: () => {
+                    this.cargarDatosEjemplo();
+                    this.debouncedRender();
+                }
+            },
+            {
+                title: '📝 Agregar Mediciones',
+                content: 'Usa el formulario simplificado. Solo necesitas 3 parámetros básicos para empezar.',
+                action: 'Entendido'
+            },
+            {
+                title: '🧮 Calculadoras',
+                content: 'Los botones azules 🧮 te ayudan a calcular cuánto producto agregar.',
+                action: 'Perfecto'
+            },
+            {
+                title: '🏆 ¡Listo!',
+                content: 'Ya puedes empezar a monitorear tu acuario. ¡Los corales te lo agradecerán!',
+                action: 'Empezar'
+            }
+        ];
+        
+        this.currentOnboardingStep = 0;
+        this.onboardingSteps = onboardingSteps;
+        this.showOnboardingStep();
+    }
+    
+    showOnboardingStep() {
+        const step = this.onboardingSteps[this.currentOnboardingStep];
+        
+        const modal = document.createElement('div');
+        modal.className = 'onboarding-modal';
+        modal.innerHTML = `
+            <div class="onboarding-content">
+                <div class="onboarding-header">
+                    <h3>${step.title}</h3>
+                    <div class="onboarding-progress">
+                        <div class="progress-bar" style="width: ${((this.currentOnboardingStep + 1) / this.onboardingSteps.length) * 100}%"></div>
+                    </div>
+                </div>
+                <div class="onboarding-body">
+                    <p>${step.content}</p>
+                </div>
+                <div class="onboarding-footer">
+                    ${this.currentOnboardingStep > 0 ? '<button class="btn-secondary" onclick="app.prevOnboardingStep()">Atrás</button>' : ''}
+                    <button class="btn-primary" onclick="app.nextOnboardingStep()">${step.action}</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Animar entrada
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 100);
+    }
+    
+    nextOnboardingStep() {
+        const currentStep = this.onboardingSteps[this.currentOnboardingStep];
+        
+        // Ejecutar callback si existe
+        if (currentStep.callback) {
+            currentStep.callback();
+        }
+        
+        // Remover modal actual
+        const modal = document.querySelector('.onboarding-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        this.currentOnboardingStep++;
+        
+        if (this.currentOnboardingStep < this.onboardingSteps.length) {
+            setTimeout(() => {
+                this.showOnboardingStep();
+            }, 500);
+        } else {
+            // Onboarding completado
+            localStorage.setItem('hasSeenOnboarding', 'true');
+            this.mostrarConfirmacion('🎉 ¡Bienvenido a CoralTrack!');
+        }
+    }
+    
+    prevOnboardingStep() {
+        const modal = document.querySelector('.onboarding-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        this.currentOnboardingStep--;
+        
+        if (this.currentOnboardingStep >= 0) {
+            setTimeout(() => {
+                this.showOnboardingStep();
+            }, 300);
+        }
     }
 }
 
