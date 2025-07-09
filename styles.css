@@ -2,12 +2,24 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #f5f5f5;
     color: #333;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .app {
@@ -37,13 +49,21 @@ header h1 {
 
 .tab-btn {
     flex: 1;
-    padding: 0.75rem;
+    padding: 1rem;
     border: none;
     background: rgba(255,255,255,0.2);
     color: white;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    font-size: 1rem;
+    font-weight: 500;
+    min-height: 48px;
+    touch-action: manipulation;
+}
+
+.tab-btn:active {
+    transform: scale(0.98);
 }
 
 .tab-btn.active {
@@ -82,10 +102,21 @@ header h1 {
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
-    font-size: 1rem;
+    padding: 1rem;
+    border: 2px solid #ddd;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    background: #fff;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
 .form-group textarea {
@@ -95,15 +126,23 @@ header h1 {
 
 .btn-primary {
     width: 100%;
-    padding: 1rem;
+    padding: 1.25rem;
     background: #2196F3;
     color: white;
     border: none;
-    border-radius: 0.5rem;
-    font-size: 1.1rem;
-    font-weight: 500;
+    border-radius: 0.75rem;
+    font-size: 1.2rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    min-height: 56px;
+    touch-action: manipulation;
+}
+
+.btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.4);
 }
 
 .btn-primary:hover {
@@ -112,6 +151,163 @@ header h1 {
 
 .charts-container {
     margin-bottom: 2rem;
+}
+
+.charts-container:empty::before {
+    content: "📊 Los gráficos aparecerán después de guardar tu primera medición";
+    display: block;
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+
+
+.demo-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+}
+
+.btn-example {
+    flex: 1;
+    padding: 1rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.btn-example:hover {
+    background: #45a049;
+}
+
+.btn-secondary {
+    flex: 1;
+    padding: 1rem;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btn-secondary:hover {
+    background: #d32f2f;
+}
+
+.chart-status {
+    margin-bottom: 1rem;
+}
+
+.current-value {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-good {
+    background: #E8F5E8;
+    color: #2E7D32;
+    border: 1px solid #4CAF50;
+}
+
+.status-warning {
+    background: #FFF3E0;
+    color: #F57C00;
+    border: 1px solid #FF9800;
+}
+
+.status-danger {
+    background: #FFEBEE;
+    color: #C62828;
+    border: 1px solid #F44336;
+}
+
+.chart-item {
+    background: white;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.simple-chart {
+    margin: 0.5rem 0;
+}
+
+.chart-values {
+    text-align: center;
+    padding: 0.25rem;
+    background: #f8f8f8;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.charts-container {
+    margin-bottom: 1rem;
+}
+
+.charts-container:empty::before {
+    content: "📊 Toca 'Ver Datos Ejemplo' para ver los gráficos";
+    display: block;
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-fallback, .chart-error {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.values-list {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.values-list div {
+    margin: 0.25rem 0;
+}
+
+.no-data {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #666;
+    font-size: 1.1rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .chart-item {
@@ -180,13 +376,21 @@ header h1 {
 
 .coral-tab {
     flex: 1;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
+    padding: 1rem;
+    border: 2px solid #ddd;
     background: white;
     color: #666;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.3s;
+    font-size: 1rem;
+    font-weight: 500;
+    min-height: 48px;
+    touch-action: manipulation;
+}
+
+.coral-tab:active {
+    transform: scale(0.98);
 }
 
 .coral-tab.active {
@@ -205,15 +409,24 @@ header h1 {
 
 .btn-upload {
     width: 100%;
-    padding: 1rem;
+    padding: 1.25rem;
     background: #4CAF50;
     color: white;
     border: none;
-    border-radius: 0.5rem;
-    font-size: 1.1rem;
+    border-radius: 0.75rem;
+    font-size: 1.2rem;
+    font-weight: 600;
     margin-bottom: 1.5rem;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    min-height: 56px;
+    touch-action: manipulation;
+}
+
+.btn-upload:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
 }
 
 .btn-upload:hover {
@@ -267,11 +480,12 @@ header h1 {
 .modal-content {
     margin: auto;
     display: block;
-    width: 90%;
-    max-width: 700px;
-    max-height: 80%;
+    width: 95%;
+    max-width: 100vw;
+    max-height: 85vh;
     object-fit: contain;
-    margin-top: 5%;
+    margin-top: 2.5%;
+    border-radius: 0.5rem;
 }
 
 .modal-date {
@@ -295,12 +509,80 @@ header h1 {
     color: #bbb;
 }
 
+/* Optimizaciones mobile-first */
+.form-group label {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.historial-params {
+    font-size: 0.95rem;
+}
+
+.photo-item {
+    border-radius: 0.75rem;
+}
+
+.photo-date {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Mejoras táctiles */
+button, input, textarea, select {
+    touch-action: manipulation;
+}
+
+/* Espaciado optimizado para móvil */
+.tab-content {
+    padding: 1rem 1rem 2rem;
+}
+
+.form-container {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+/* Responsive breakpoints */
 @media (max-width: 480px) {
+    html {
+        font-size: 15px;
+    }
+    
     .historial-params {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
     
     .photo-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .tab-content {
+        padding: 0.75rem 0.75rem 1.5rem;
+    }
+    
+    .form-container {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 360px) {
+    html {
+        font-size: 14px;
+    }
+    
+    .photo-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+    
+    .tab-content {
+        padding: 0.5rem 0.5rem 1rem;
     }
 }

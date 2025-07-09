@@ -2,11 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CoralTrack - Asistente para Acuarios</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CoralTrack">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <div class="app">
@@ -21,6 +25,15 @@
         <main>
             <!-- Módulo 1: Parámetros -->
             <section id="parametros" class="tab-content active">
+                <div class="demo-buttons">
+                    <button id="datos-ejemplo" class="btn-example">📊 Ver Datos Ejemplo</button>
+                    <button id="limpiar-datos" class="btn-secondary">🗑️ Limpiar Todo</button>
+                </div>
+
+                <div class="charts-container">
+                    <div id="charts"></div>
+                </div>
+                
                 <form id="parametros-form" class="form-container">
                     <div class="form-group">
                         <label for="fecha">Fecha de Medición</label>
@@ -70,10 +83,6 @@
                     <button type="submit" class="btn-primary">Guardar Medición</button>
                 </form>
 
-                <div class="charts-container">
-                    <div id="charts"></div>
-                </div>
-
                 <div class="historial-container">
                     <h3>Historial de Mediciones</h3>
                     <div id="historial"></div>
@@ -108,7 +117,17 @@
         <div class="modal-date" id="modal-date"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // Esperar a que Chart.js se cargue antes de inicializar la app
+        window.addEventListener('load', () => {
+            if (typeof Chart !== 'undefined') {
+                console.log('Chart.js cargado correctamente');
+            } else {
+                console.error('Chart.js no se pudo cargar');
+            }
+        });
+    </script>
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
