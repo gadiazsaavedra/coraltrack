@@ -18,6 +18,7 @@
             <h1>CoralTrack</h1>
             <nav class="tab-nav">
                 <button class="tab-btn active" data-tab="parametros">Parámetros</button>
+                <button class="tab-btn" data-tab="avanzado">Avanzado</button>
                 <button class="tab-btn" data-tab="galeria">Galería</button>
             </nav>
         </header>
@@ -25,6 +26,8 @@
         <main>
             <!-- Módulo 1: Parámetros -->
             <section id="parametros" class="tab-content active">
+                <div id="dashboard" class="dashboard"></div>
+                
                 <div class="demo-buttons">
                     <button id="datos-ejemplo" class="btn-example">📊 Ver Datos Ejemplo</button>
                     <button id="limpiar-datos" class="btn-secondary">🗑️ Limpiar Todo</button>
@@ -86,6 +89,26 @@
                 <div class="historial-container">
                     <h3>Historial de Mediciones</h3>
                     <div id="historial"></div>
+                </div>
+            </section>
+
+            <!-- Módulo Avanzado -->
+            <section id="avanzado" class="tab-content">
+                <div class="advanced-container">
+                    <div class="advanced-section">
+                        <h3>🧮 Calculadoras</h3>
+                        <div id="calculadoras"></div>
+                    </div>
+                    
+                    <div class="advanced-section">
+                        <h3>📈 Comparación Temporal</h3>
+                        <div id="comparacion-temporal"></div>
+                    </div>
+                    
+                    <div class="advanced-section">
+                        <h3>🏆 Metas y Logros</h3>
+                        <div id="metas-logros"></div>
+                    </div>
                 </div>
             </section>
 
