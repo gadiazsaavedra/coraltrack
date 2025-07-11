@@ -183,6 +183,7 @@ class CoralTrack {
     }
 
     guardarParametros() {
+        console.log('Guardando parámetros...');
         const formData = new FormData(document.getElementById('parametros-form'));
         const parametro = {};
         
@@ -190,8 +191,11 @@ class CoralTrack {
             parametro[key] = key === 'fecha' || key === 'notas' ? value : parseFloat(value) || null;
         }
         
+        console.log('Parámetro a guardar:', parametro);
+        
         this.parametros.push(parametro);
         localStorage.setItem('parametros', JSON.stringify(this.parametros));
+        console.log('Total parámetros:', this.parametros.length);
         
         // Feedback táctil en móvil
         if (navigator.vibrate) {
@@ -202,8 +206,15 @@ class CoralTrack {
         this.mostrarConfirmacion('Medición guardada exitosamente');
         
         this.debouncedRender();
+        this.renderHistorial();
         document.getElementById('parametros-form').reset();
         this.setFechaActual();
+        
+        // Volver al paso 1
+        document.getElementById('step-2').classList.remove('active');
+        document.getElementById('step-1').classList.add('active');
+        document.querySelector('[data-step="2"]').classList.remove('active');
+        document.querySelector('[data-step="1"]').classList.add('active');
     }
     
     mostrarConfirmacion(mensaje) {
