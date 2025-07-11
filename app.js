@@ -1,7 +1,12 @@
 class CoralTrack {
     constructor() {
         this.parametros = JSON.parse(localStorage.getItem('parametros')) || [];
-        this.fotos = JSON.parse(localStorage.getItem('fotos')) || { pachyclavularia: [], palythoa: [] };
+        this.fotos = JSON.parse(localStorage.getItem('fotos')) || {};
+        
+        // Asegurar que ambas especies existen
+        if (!this.fotos.pachyclavularia) this.fotos.pachyclavularia = [];
+        if (!this.fotos.palythoa) this.fotos.palythoa = [];
+        
         this.charts = {};
         this.renderTimeout = null;
         
@@ -46,6 +51,7 @@ class CoralTrack {
         this.setupForm();
         this.setupCoralTabs();
         this.setupModal();
+        this.setupPhotoModal();
         this.setFechaActual();
         this.renderDashboard();
         this.renderCharts();
@@ -54,7 +60,7 @@ class CoralTrack {
         this.renderAvanzado();
         this.checkAlerts();
         this.setupReminders();
-        this.checkOnboarding();
+
         
         // Crear función de render optimizada
         this.debouncedRender = this.debounce(() => {
@@ -68,11 +74,18 @@ class CoralTrack {
     setupTabs() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                console.log('Tab clicked:', e.target.dataset.tab);
+                
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
                 e.target.classList.add('active');
-                document.getElementById(e.target.dataset.tab).classList.add('active');
+                const targetSection = document.getElementById(e.target.dataset.tab);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                } else {
+                    console.error('Section not found:', e.target.dataset.tab);
+                }
             });
         });
     }
@@ -83,24 +96,7 @@ class CoralTrack {
             this.guardarParametros();
         });
         
-        document.getElementById('limpiar-datos').addEventListener('click', () => {
-            if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
-                this.parametros = [];
-                localStorage.removeItem('parametros');
-                this.renderDashboard();
-                this.renderCharts();
-                this.renderHistorial();
-                this.mostrarConfirmacion('Datos limpiados exitosamente');
-            }
-        });
-        
-        document.getElementById('datos-ejemplo').addEventListener('click', () => {
-            console.log('Botón clickeado');
-            this.cargarDatosEjemplo();
-            console.log('Datos cargados:', this.parametros.length);
-            this.debouncedRender();
-            this.mostrarConfirmacion('Datos de ejemplo cargados');
-        });
+
         
         document.getElementById('exportar-datos').addEventListener('click', () => {
             this.exportarDatos();
@@ -114,9 +110,16 @@ class CoralTrack {
             this.importarDatos(e.target.files[0]);
         });
         
-        document.getElementById('reiniciar-tour').addEventListener('click', () => {
-            this.showOnboarding();
+        document.getElementById('limpiar-todo').addEventListener('click', () => {
+            if (confirm('¿Estás seguro de que quieres eliminar TODAS las mediciones? Esta acción no se puede deshacer.')) {
+                this.parametros = [];
+                localStorage.removeItem('parametros');
+                this.debouncedRender();
+                this.mostrarConfirmacion('🗑️ Todas las mediciones eliminadas');
+            }
         });
+        
+
     }
 
     setupCoralTabs() {
@@ -167,6 +170,16 @@ class CoralTrack {
 
     setFechaActual() {
         document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+    }
+    
+    setupPhotoModal() {
+        document.getElementById('guardar-foto-nota').addEventListener('click', () => {
+            this.guardarFotoConNota();
+        });
+        
+        document.getElementById('cancelar-nota').addEventListener('click', () => {
+            this.cancelarNota();
+        });
     }
 
     guardarParametros() {
@@ -223,7 +236,7 @@ class CoralTrack {
         chartsContainer.innerHTML = '';
         
         if (this.parametros.length === 0) {
-            chartsContainer.innerHTML = '<div class="no-data">📊 Toca "Ver Datos Ejemplo" arriba para ver los gráficos</div>';
+            chartsContainer.innerHTML = '<div class="no-data">📊 Agrega tu primera medición para ver los gráficos</div>';
             return;
         }
         
@@ -249,7 +262,7 @@ class CoralTrack {
                 const tendencia = valores.length >= 3 ? (ultimo > valores[valores.length-3] ? '📈' : ultimo < valores[valores.length-3] ? '📉' : '➡️') : '➡️';
                 const estado = this.getEstado(param, ultimo);
                 
-                const miniChart = this.createMiniChart(valores, config.color);
+                const chartId = `chart-${param}`;
                 const rangeBar = this.createRangeBar(param, ultimo);
                 
                 html += `
@@ -268,9 +281,9 @@ class CoralTrack {
                                 <div style="font-size: 24px; font-weight: bold; color: ${estado.color}; margin-bottom: 5px;">${ultimo}</div>
                                 <div style="font-size: 11px; padding: 3px 6px; border-radius: 10px; background: ${estado.bg}; color: ${estado.color};">${estado.text}</div>
                             </div>
-                            <div style="text-align: right;">
-                                ${miniChart}
-                                <div style="font-size: 12px; color: #666; margin-top: 5px;">${valores.length} mediciones</div>
+                            <div style="text-align: right; width: 120px;">
+                                <canvas id="${chartId}" width="120" height="60"></canvas>
+                                <div style="font-size: 11px; color: #666; margin-top: 3px;">${valores.length} med</div>
                             </div>
                         </div>
                         
@@ -288,6 +301,12 @@ class CoralTrack {
         chartsContainer.style.opacity = '1';
         chartsContainer.style.height = 'auto';
         chartsContainer.style.overflow = 'visible';
+        
+        // Crear gráficos reales después de insertar HTML
+        setTimeout(() => {
+            this.createRealCharts(configs);
+            this.createDetailedCharts(configs);
+        }, 100);
     }
     
 
@@ -388,14 +407,216 @@ class CoralTrack {
             </div>
         `;
     }
+    
+    createRealCharts(configs) {
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js no está disponible');
+            return;
+        }
+        
+        // Destruir gráficos existentes
+        Object.values(this.charts).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        this.charts = {};
+        
+        Object.keys(configs).forEach(param => {
+            const config = configs[param];
+            const canvas = document.getElementById(`chart-${param}`);
+            
+            if (!canvas) return;
+            
+            const valores = this.parametros.map(p => p[param]).filter(v => v !== null && v !== undefined);
+            const fechas = this.parametros.filter(p => p[param] !== null && p[param] !== undefined).map(p => new Date(p.fecha).toLocaleDateString());
+            
+            if (valores.length < 2) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Escalas Y fijas para mini gráficos
+            const escalasY = {
+                densidad: { min: 1.0245, max: 1.0255 },
+                kh: { min: 6, max: 12 },
+                calcio: { min: 350, max: 500 },
+                magnesio: { min: 1200, max: 1500 },
+                nitratos: { min: 0, max: 25 },
+                fosfatos: { min: 0, max: 0.15 },
+                temperatura: { min: 22, max: 28 }
+            };
+            
+            const escalaY = escalasY[param];
+            
+            this.charts[param] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: fechas.slice(-10), // Últimos 10 puntos
+                    datasets: [{
+                        label: config.label,
+                        data: valores.slice(-10),
+                        borderColor: config.color,
+                        backgroundColor: config.color + '20',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: false,
+                            min: escalaY ? escalaY.min : undefined,
+                            max: escalaY ? escalaY.max : undefined,
+                            beginAtZero: false
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverBackgroundColor: config.color
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        });
+    }
+    
+    createDetailedCharts(configs) {
+        const container = document.getElementById('detailed-charts-container');
+        if (!container || this.parametros.length < 2) return;
+        
+        let html = '';
+        Object.keys(configs).forEach(param => {
+            const config = configs[param];
+            const valores = this.parametros.map(p => p[param]).filter(v => v !== null && v !== undefined);
+            
+            if (valores.length >= 2) {
+                html += `
+                    <div style="background: white; padding: 12px; margin: 8px 0; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-left: 4px solid ${config.color};">
+                        <h4 style="margin: 0 0 8px 0; color: #333; font-size: 0.95rem; font-weight: 600;">
+                            ${config.label}
+                        </h4>
+                        <div style="height: ${param === 'densidad' ? '50px' : '200px'}; position: relative; margin: 0 -10px;">
+                            <canvas id="detailed-chart-${param}"></canvas>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        container.innerHTML = html;
+        
+        setTimeout(() => {
+            Object.keys(configs).forEach(param => {
+                const config = configs[param];
+                const canvas = document.getElementById(`detailed-chart-${param}`);
+                
+                if (!canvas) return;
+                
+                const parametrosConFecha = this.parametros.filter(p => p[param] !== null && p[param] !== undefined);
+                const valores = parametrosConFecha.map(p => p[param]);
+                const fechas = parametrosConFecha.map(p => new Date(p.fecha).toLocaleDateString());
+                
+                if (valores.length < 2) return;
+                
+                const ctx = canvas.getContext('2d');
+                
+                // Escalas Y fijas por parámetro
+                const escalasY = {
+                    densidad: { min: 1.0245, max: 1.0255 },
+                    kh: { min: 6, max: 12 },
+                    calcio: { min: 350, max: 500 },
+                    magnesio: { min: 1200, max: 1500 },
+                    nitratos: { min: 0, max: 25 },
+                    fosfatos: { min: 0, max: 0.15 },
+                    temperatura: { min: 22, max: 28 }
+                };
+                
+                const escalaY = escalasY[param];
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: fechas,
+                        datasets: [{
+                            label: config.label,
+                            data: valores,
+                            borderColor: config.color,
+                            backgroundColor: config.color + '15',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: config.color,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { size: 12 },
+                                bodyFont: { size: 11 },
+                                displayColors: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#f0f0f0' },
+                                ticks: { maxTicksLimit: 4, color: '#666', font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: '#f0f0f0' },
+                                ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 5 },
+                                min: escalaY ? escalaY.min : undefined,
+                                max: escalaY ? escalaY.max : undefined,
+                                min: escalaY ? escalaY.min : undefined,
+                                max: escalaY ? escalaY.max : undefined,
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            });
+        }, 200);
+    }
 
     renderHistorial() {
         const historialContainer = document.getElementById('historial');
         const historialOrdenado = [...this.parametros].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         
-        historialContainer.innerHTML = historialOrdenado.map(p => `
+        historialContainer.innerHTML = historialOrdenado.map((p, index) => `
             <div class="historial-item">
-                <div class="historial-date">${new Date(p.fecha).toLocaleDateString()}</div>
+                <div class="historial-header">
+                    <div class="historial-date">${new Date(p.fecha).toLocaleDateString()}</div>
+                    <div class="historial-actions">
+                        <button class="btn-edit" onclick="app.editarMedicion(${this.parametros.indexOf(p)})" title="Editar">✏️</button>
+                        <button class="btn-delete" onclick="app.eliminarMedicion(${this.parametros.indexOf(p)})" title="Eliminar">🗑️</button>
+                    </div>
+                </div>
                 <div class="historial-params">
                     ${p.densidad ? `<div class="param-item">Densidad: ${p.densidad}</div>` : ''}
                     ${p.kh ? `<div class="param-item">KH: ${p.kh}</div>` : ''}
@@ -413,25 +634,269 @@ class CoralTrack {
     renderFotos() {
         Object.keys(this.fotos).forEach(especie => {
             const grid = document.getElementById(`grid-${especie}`);
+            if (!grid) return;
+            
             const fotosOrdenadas = [...this.fotos[especie]].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             
-            grid.innerHTML = fotosOrdenadas.map(foto => `
-                <div class="photo-item" onclick="app.mostrarFoto('${foto.src}', '${foto.fecha}')">
-                    <img src="${foto.src}" alt="Coral ${especie}">
-                    <div class="photo-date">${new Date(foto.fecha).toLocaleDateString()}</div>
+            grid.innerHTML = fotosOrdenadas.map((foto, index) => `
+                <div class="photo-item" onclick="app.mostrarFoto('${foto.src}', '${foto.fecha}', '${foto.nota || ''}')">
+                    <img src="${foto.src}" alt="Coral ${especie}" loading="lazy">
+                    <div class="photo-overlay">
+                        <div class="photo-date">${new Date(foto.fecha).toLocaleDateString()}</div>
+                        ${foto.nota ? `<div class="photo-note-preview">📝 ${foto.nota.substring(0, 30)}${foto.nota.length > 30 ? '...' : ''}</div>` : ''}
+                    </div>
+                    <button class="photo-delete" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})">×</button>
                 </div>
             `).join('');
         });
     }
 
-    mostrarFoto(src, fecha) {
+    mostrarFoto(src, fecha, nota = '') {
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
         const modalDate = document.getElementById('modal-date');
+        const modalNote = document.getElementById('modal-note');
         
         modal.style.display = 'block';
         modalImg.src = src;
         modalDate.textContent = new Date(fecha).toLocaleDateString();
+        modalNote.textContent = nota || 'Sin notas';
+    }
+    
+    cargarFoto(especie) {
+        const fileInput = document.getElementById('file-input');
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Feedback táctil
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+                
+                // Comprimir imagen antes de guardar
+                this.comprimirImagen(file, (imagenComprimida) => {
+                    this.tempFotoData = {
+                        src: imagenComprimida,
+                        fecha: new Date().toISOString(),
+                        especie: especie
+                    };
+                    
+                    // Mostrar modal para agregar nota
+                    document.getElementById('photo-note-modal').style.display = 'flex';
+                    document.getElementById('photo-note-input').focus();
+                });
+            }
+        };
+        fileInput.click();
+    }
+    
+    guardarFotoConNota() {
+        console.log('Guardando foto con nota...');
+        const nota = document.getElementById('photo-note-input').value.trim();
+        console.log('Nota:', nota);
+        console.log('TempFotoData:', this.tempFotoData);
+        
+        if (this.tempFotoData) {
+            const foto = {
+                src: this.tempFotoData.src,
+                fecha: this.tempFotoData.fecha,
+                especie: this.tempFotoData.especie,
+                nota: nota || 'Sin nota'
+            };
+            
+            console.log('Foto a guardar:', foto);
+            console.log('Estado actual fotos:', this.fotos);
+            
+            // Asegurar que el array existe
+            if (!this.fotos[foto.especie]) {
+                this.fotos[foto.especie] = [];
+                console.log('Creado array para especie:', foto.especie);
+            }
+            
+            this.fotos[foto.especie].push(foto);
+            
+            try {
+                localStorage.setItem('fotos', JSON.stringify(this.fotos));
+                console.log('Foto guardada en localStorage');
+            } catch (error) {
+                if (error.name === 'QuotaExceededError') {
+                    alert('⚠️ Espacio de almacenamiento lleno. Elimina algunas fotos antiguas.');
+                    // Remover la foto que acabamos de agregar
+                    this.fotos[foto.especie].pop();
+                    return;
+                } else {
+                    throw error;
+                }
+            }
+            
+            this.renderFotos();
+            
+            // Limpiar datos temporales
+            this.tempFotoData = null;
+            document.getElementById('photo-note-input').value = '';
+            document.getElementById('photo-note-modal').style.display = 'none';
+            
+            this.mostrarConfirmacion('📷 Foto guardada exitosamente');
+        } else {
+            console.error('No hay datos temporales de foto');
+            alert('Error: No hay foto para guardar');
+        }
+    }
+    
+    cancelarNota() {
+        this.tempFotoData = null;
+        document.getElementById('photo-note-input').value = '';
+        document.getElementById('photo-note-modal').style.display = 'none';
+    }
+    
+    eliminarFoto(especie, index) {
+        if (confirm('¿Eliminar esta foto?')) {
+            this.fotos[especie].splice(index, 1);
+            localStorage.setItem('fotos', JSON.stringify(this.fotos));
+            this.renderFotos();
+            this.mostrarConfirmacion('🗑️ Foto eliminada');
+        }
+    }
+    
+    comprimirImagen(file, callback) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+            // Redimensionar a máximo 800px manteniendo proporción
+            const maxSize = 800;
+            let { width, height } = img;
+            
+            if (width > height) {
+                if (width > maxSize) {
+                    height = (height * maxSize) / width;
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = (width * maxSize) / height;
+                    height = maxSize;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Dibujar imagen redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convertir a base64 con calidad reducida
+            const imagenComprimida = canvas.toDataURL('image/jpeg', 0.7);
+            callback(imagenComprimida);
+        };
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    agregarEspecie() {
+        const nombreEspecie = prompt('🐠 Nombre de la nueva especie de coral:', '').trim();
+        
+        if (!nombreEspecie) return;
+        
+        // Convertir a formato válido (sin espacios, minúsculas)
+        const especieId = nombreEspecie.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        
+        if (this.fotos[especieId]) {
+            alert('⚠️ Esta especie ya existe');
+            return;
+        }
+        
+        // Crear nueva especie
+        this.fotos[especieId] = [];
+        localStorage.setItem('fotos', JSON.stringify(this.fotos));
+        
+        // Agregar pestaña
+        this.crearTabEspecie(especieId, nombreEspecie);
+        
+        // Crear contenido
+        this.crearContenidoEspecie(especieId, nombreEspecie);
+        
+        // Activar nueva pestaña
+        this.activarEspecie(especieId);
+        
+        this.mostrarConfirmacion(`🎉 Especie "${nombreEspecie}" agregada`);
+    }
+    
+    crearTabEspecie(especieId, nombreEspecie) {
+        const tabsContainer = document.querySelector('.coral-tabs');
+        const addButton = tabsContainer.querySelector('.add-species');
+        
+        const newTab = document.createElement('button');
+        newTab.className = 'coral-tab';
+        newTab.setAttribute('data-coral', especieId);
+        newTab.innerHTML = `${nombreEspecie} <span class="delete-species" onclick="event.stopPropagation(); app.eliminarEspecie('${especieId}');">×</span>`;
+        
+        // Insertar antes del botón de agregar
+        tabsContainer.insertBefore(newTab, addButton);
+        
+        // Agregar event listener
+        newTab.addEventListener('click', () => {
+            this.activarEspecie(especieId);
+        });
+    }
+    
+    crearContenidoEspecie(especieId, nombreEspecie) {
+        const galeriaSection = document.getElementById('galeria');
+        
+        const newContent = document.createElement('div');
+        newContent.id = especieId;
+        newContent.className = 'coral-content';
+        newContent.innerHTML = `
+            <button class="btn-upload" onclick="app.cargarFoto('${especieId}');">📷 Agregar Foto</button>
+            <div class="photo-grid" id="grid-${especieId}"></div>
+        `;
+        
+        galeriaSection.appendChild(newContent);
+    }
+    
+    activarEspecie(especieId) {
+        // Desactivar todas las pestañas y contenidos
+        document.querySelectorAll('.coral-tab').forEach(tab => {
+            if (!tab.classList.contains('add-species')) {
+                tab.classList.remove('active');
+            }
+        });
+        document.querySelectorAll('.coral-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Activar la nueva
+        document.querySelector(`[data-coral="${especieId}"]`).classList.add('active');
+        document.getElementById(especieId).classList.add('active');
+        
+        this.renderFotos();
+    }
+    
+    eliminarEspecie(especieId) {
+        if (especieId === 'pachyclavularia' || especieId === 'palythoa') {
+            alert('⚠️ No puedes eliminar las especies predeterminadas');
+            return;
+        }
+        
+        if (!confirm('¿Eliminar la especie y todas sus fotos?')) return;
+        
+        // Eliminar datos
+        delete this.fotos[especieId];
+        localStorage.setItem('fotos', JSON.stringify(this.fotos));
+        
+        // Eliminar elementos del DOM
+        document.querySelector(`[data-coral="${especieId}"]`).remove();
+        document.getElementById(especieId).remove();
+        
+        // Activar primera pestaña
+        this.activarEspecie('pachyclavularia');
+        
+        this.mostrarConfirmacion('🗑️ Especie eliminada');
     }
     
     renderDashboard() {
@@ -1085,6 +1550,42 @@ class CoralTrack {
         reader.readAsText(file);
     }
     
+    eliminarMedicion(index) {
+        if (confirm('¿Eliminar esta medición?')) {
+            this.parametros.splice(index, 1);
+            localStorage.setItem('parametros', JSON.stringify(this.parametros));
+            this.debouncedRender();
+            this.mostrarConfirmacion('🗑️ Medición eliminada');
+        }
+    }
+    
+    editarMedicion(index) {
+        const medicion = this.parametros[index];
+        
+        // Cargar datos en el formulario
+        document.getElementById('fecha').value = medicion.fecha;
+        document.getElementById('densidad').value = medicion.densidad || '';
+        document.getElementById('kh').value = medicion.kh || '';
+        document.getElementById('calcio').value = medicion.calcio || '';
+        document.getElementById('magnesio').value = medicion.magnesio || '';
+        document.getElementById('nitratos').value = medicion.nitratos || '';
+        document.getElementById('fosfatos').value = medicion.fosfatos || '';
+        document.getElementById('temperatura').value = medicion.temperatura || '';
+        document.getElementById('notas').value = medicion.notas || '';
+        
+        // Eliminar la medición original
+        this.parametros.splice(index, 1);
+        localStorage.setItem('parametros', JSON.stringify(this.parametros));
+        
+        // Ir al paso 2 del formulario
+        this.nextStep();
+        
+        // Scroll al formulario
+        document.querySelector('.form-wizard').scrollIntoView({ behavior: 'smooth' });
+        
+        this.mostrarConfirmacion('✏️ Editando medición - Modifica y guarda');
+    }
+    
     toggleAccordion(header) {
         const content = header.nextElementSibling;
         const icon = header.querySelector('.accordion-icon');
@@ -1139,11 +1640,12 @@ class CoralTrack {
         const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
         const hasData = this.parametros.length > 0;
         
-        if (!hasSeenOnboarding && !hasData) {
-            setTimeout(() => {
-                this.showOnboarding();
-            }, 1000);
-        }
+        // Tour deshabilitado
+        // if (!hasSeenOnboarding && !hasData) {
+        //     setTimeout(() => {
+        //         this.showOnboarding();
+        //     }, 1000);
+        // }
     }
     
     showOnboarding() {
@@ -1256,37 +1758,10 @@ class CoralTrack {
             }, 300);
         }
     }
+    
+
 }
 
-function cargarFoto(especie) {
-    const fileInput = document.getElementById('file-input');
-    fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Feedback táctil
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const foto = {
-                    src: e.target.result,
-                    fecha: new Date().toISOString(),
-                    especie: especie
-                };
-                
-                app.fotos[especie].push(foto);
-                localStorage.setItem('fotos', JSON.stringify(app.fotos));
-                app.renderFotos();
-                
-                // Confirmación visual
-                app.mostrarConfirmacion('Foto guardada exitosamente');
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    fileInput.click();
-}
+
 
 const app = new CoralTrack();

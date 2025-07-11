@@ -1003,6 +1003,33 @@ header h1 {
     border-color: #2196F3;
 }
 
+.coral-tab.add-species {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+    font-weight: 600;
+}
+
+.coral-tab.add-species:hover {
+    background: #45a049;
+    border-color: #45a049;
+}
+
+.delete-species {
+    margin-left: 0.5rem;
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.delete-species:hover {
+    background: rgba(255, 107, 107, 0.2);
+}
+
 .coral-content {
     display: none;
 }
@@ -1046,28 +1073,78 @@ header h1 {
 .photo-item {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.photo-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
 .photo-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s;
 }
 
-.photo-date {
+.photo-item:hover img {
+    transform: scale(1.05);
+}
+
+.photo-overlay {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0,0,0,0.7);
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
     color: white;
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    text-align: center;
+    padding: 1rem 0.75rem 0.75rem;
+}
+
+.photo-date {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.photo-note-preview {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    line-height: 1.2;
+}
+
+.photo-delete {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.9);
+    color: #f44336;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.photo-item:hover .photo-delete {
+    opacity: 1;
+}
+
+.photo-delete:hover {
+    background: #f44336;
+    color: white;
 }
 
 .modal {
@@ -1092,11 +1169,75 @@ header h1 {
     border-radius: 0.5rem;
 }
 
-.modal-date {
+.modal-info {
     text-align: center;
     color: white;
     padding: 1rem;
+}
+
+.modal-date {
     font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.modal-note {
+    font-size: 0.9rem;
+    font-style: italic;
+    opacity: 0.9;
+}
+
+.photo-note-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.photo-note-content {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+}
+
+.photo-note-content h3 {
+    margin: 0 0 1rem 0;
+    text-align: center;
+    color: #333;
+}
+
+.photo-note-content textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #ddd;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+}
+
+.photo-note-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.photo-note-actions .btn-secondary,
+.photo-note-actions .btn-primary {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .close {
@@ -1189,4 +1330,57 @@ button, input, textarea, select {
     .tab-content {
         padding: 0.5rem 0.5rem 1rem;
     }
+}
+
+.historial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.historial-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-edit:hover {
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.btn-delete:hover {
+    background: rgba(244, 67, 54, 0.1);
+}
+.btn-danger {
+    background: #f44336 !important;
+    color: white !important;
+}
+
+.btn-danger:hover {
+    background: #d32f2f !important;
+}
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.coral-content {
+    display: none;
+}
+
+.coral-content.active {
+    display: block;
 }
