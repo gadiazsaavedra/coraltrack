@@ -93,6 +93,7 @@ class CoralTrack {
     setupForm() {
         document.getElementById('parametros-form').addEventListener('submit', (e) => {
             e.preventDefault();
+            console.log('Form submitted');
             this.guardarParametros();
         });
         
@@ -184,6 +185,14 @@ class CoralTrack {
 
     guardarParametros() {
         console.log('Guardando parámetros...');
+        
+        // Validación manual de fecha
+        const fecha = document.getElementById('fecha').value;
+        if (!fecha) {
+            alert('Por favor selecciona una fecha');
+            return;
+        }
+        
         const formData = new FormData(document.getElementById('parametros-form'));
         const parametro = {};
         
