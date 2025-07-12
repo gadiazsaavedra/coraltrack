@@ -31,7 +31,6 @@
                 <div class="backup-buttons">
                     <button id="exportar-datos" class="btn-backup">💾 Exportar Datos</button>
                     <button id="importar-datos" class="btn-backup">📁 Importar Datos</button>
-                    <button id="limpiar-todo" class="btn-backup btn-danger">🗑️ Limpiar Todo</button>
                     <input type="file" id="import-file" accept=".json" style="display: none;">
                 </div>
 
@@ -55,7 +54,7 @@
                         </div>
                     </div>
                     
-                    <form id="parametros-form" class="form-container">
+                    <form id="parametros-form" class="form-container" novalidate>
                         <!-- Paso 1: Parámetros Básicos -->
                         <div id="step-1" class="form-step active">
                             <h4 style="margin-bottom: 1.5rem; color: #2196F3; text-align: center;">🌊 Parámetros Esenciales</h4>
@@ -174,13 +173,13 @@
                 </div>
 
                 <div id="pachyclavularia" class="coral-content active">
-                    <button class="btn-upload" onclick="app.cargarFoto('pachyclavularia')">📷 Agregar Foto</button>
                     <div class="photo-grid" id="grid-pachyclavularia"></div>
+                    <button class="btn-add-photo" onclick="app.cargarFoto('pachyclavularia')">📷 Agregar Foto</button>
                 </div>
 
                 <div id="palythoa" class="coral-content">
-                    <button class="btn-upload" onclick="app.cargarFoto('palythoa')">📷 Agregar Foto</button>
                     <div class="photo-grid" id="grid-palythoa"></div>
+                    <button class="btn-add-photo" onclick="app.cargarFoto('palythoa')">📷 Agregar Foto</button>
                 </div>
             </section>
         </main>

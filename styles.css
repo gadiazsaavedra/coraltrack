@@ -1384,3 +1384,146 @@ button, input, textarea, select {
 .coral-content.active {
     display: block;
 }
+/* Mobile-First Chart Optimization */
+.detailed-charts {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.detailed-charts > div {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+}
+
+.detailed-charts canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Responsive chart containers */
+@media (max-width: 480px) {
+    .detailed-charts {
+        padding: 0 5px;
+    }
+    
+    .detailed-charts > div {
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+}
+
+/* Chart responsiveness */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 80px;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.chart-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+/* Botones de acciones en fotos */
+.photo-actions {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.photo-item:hover .photo-actions {
+    opacity: 1;
+}
+
+.photo-edit-note,
+.photo-edit,
+.photo-delete {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.photo-edit-note {
+    background: #2196F3;
+    color: white;
+}
+
+.photo-edit {
+    background: #4CAF50;
+    color: white;
+}
+
+.photo-delete {
+    background: #f44336;
+    color: white;
+}
+
+/* Mobile - mostrar botones siempre */
+@media (max-width: 768px) {
+    .photo-actions {
+        opacity: 1;
+    }
+}
+/* Botón flotante para agregar fotos */
+.btn-add-photo {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #2196F3;
+    color: white;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.btn-add-photo:hover {
+    transform: scale(1.1);
+}
+
+.btn-add-photo:active {
+    transform: scale(0.95);
+}
+
+/* Botones de mover */
+.photo-move-up,
+.photo-move-down {
+    background: #9E9E9E;
+    color: white;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+}

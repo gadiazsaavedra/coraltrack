@@ -111,14 +111,7 @@ class CoralTrack {
             this.importarDatos(e.target.files[0]);
         });
         
-        document.getElementById('limpiar-todo').addEventListener('click', () => {
-            if (confirm('¿Estás seguro de que quieres eliminar TODAS las mediciones? Esta acción no se puede deshacer.')) {
-                this.parametros = [];
-                localStorage.removeItem('parametros');
-                this.debouncedRender();
-                this.mostrarConfirmacion('🗑️ Todas las mediciones eliminadas');
-            }
-        });
+        // Botón limpiar todo eliminado
         
 
     }
@@ -282,11 +275,11 @@ class CoralTrack {
                 const tendencia = valores.length >= 3 ? (ultimo > valores[valores.length-3] ? '📈' : ultimo < valores[valores.length-3] ? '📉' : '➡️') : '➡️';
                 const estado = this.getEstado(param, ultimo);
                 
-                const chartId = `chart-${param}`;
+                const chartId = `static-chart-${param}`;
                 const rangeBar = this.createRangeBar(param, ultimo);
                 
                 html += `
-                    <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; min-height: 120px;">
+                    <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; height: 120px; max-height: 120px; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <h3 style="margin: 0; font-size: 16px; color: #333;">${config.label}</h3>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -301,8 +294,8 @@ class CoralTrack {
                                 <div style="font-size: 24px; font-weight: bold; color: ${estado.color}; margin-bottom: 5px;">${ultimo}</div>
                                 <div style="font-size: 11px; padding: 3px 6px; border-radius: 10px; background: ${estado.bg}; color: ${estado.color};">${estado.text}</div>
                             </div>
-                            <div style="text-align: right; width: 120px;">
-                                <canvas id="${chartId}" width="120" height="60"></canvas>
+                            <div style="text-align: right; width: 120px; height: 60px; position: relative;">
+                                ${this.createStaticChart(valores, config.color)}
                                 <div style="font-size: 11px; color: #666; margin-top: 3px;">${valores.length} med</div>
                             </div>
                         </div>
@@ -322,9 +315,8 @@ class CoralTrack {
         chartsContainer.style.height = 'auto';
         chartsContainer.style.overflow = 'visible';
         
-        // Crear gráficos reales después de insertar HTML
+        // Solo crear gráficos detallados (los del dashboard ya son SVG estáticos)
         setTimeout(() => {
-            this.createRealCharts(configs);
             this.createDetailedCharts(configs);
         }, 100);
     }
@@ -367,28 +359,35 @@ class CoralTrack {
         }
     }
     
-    createMiniChart(valores, color) {
-        if (valores.length < 2) return '<div style="width: 100px; height: 30px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Sin datos</div>';
+    createStaticChart(valores, color) {
+        if (valores.length < 2) return '<div style="width: 120px; height: 60px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">Sin datos</div>';
         
-        const ultimos = valores.slice(-7); // Últimos 7 puntos
+        const ultimos = valores.slice(-10); // Últimos 10 puntos
         const min = Math.min(...ultimos);
         const max = Math.max(...ultimos);
         const range = max - min || 1;
         
         let points = '';
         ultimos.forEach((val, i) => {
-            const x = (i * 90) / (ultimos.length - 1) + 5;
-            const y = 25 - ((val - min) / range) * 20;
+            const x = (i * 110) / (ultimos.length - 1) + 5;
+            const y = 50 - ((val - min) / range) * 40;
             points += `${x},${y} `;
         });
         
         return `
-            <svg width="100" height="30" style="border-radius: 4px; background: #f9f9f9;">
+            <svg width="120" height="60" style="border-radius: 4px; background: #f9f9f9; pointer-events: none;">
+                <defs>
+                    <linearGradient id="grad-${color.replace('#', '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:${color};stop-opacity:0.3" />
+                        <stop offset="100%" style="stop-color:${color};stop-opacity:0.1" />
+                    </linearGradient>
+                </defs>
+                <polygon points="5,50 ${points}115,50" fill="url(#grad-${color.replace('#', '')})" />
                 <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
                 ${ultimos.map((val, i) => {
-                    const x = (i * 90) / (ultimos.length - 1) + 5;
-                    const y = 25 - ((val - min) / range) * 20;
-                    return `<circle cx="${x}" cy="${y}" r="1.5" fill="${color}"/>`;
+                    const x = (i * 110) / (ultimos.length - 1) + 5;
+                    const y = 50 - ((val - min) / range) * 40;
+                    return `<circle cx="${x}" cy="${y}" r="2" fill="${color}"/>`;
                 }).join('')}
             </svg>
         `;
@@ -428,92 +427,7 @@ class CoralTrack {
         `;
     }
     
-    createRealCharts(configs) {
-        if (typeof Chart === 'undefined') {
-            console.error('Chart.js no está disponible');
-            return;
-        }
-        
-        // Destruir gráficos existentes
-        Object.values(this.charts).forEach(chart => {
-            if (chart) chart.destroy();
-        });
-        this.charts = {};
-        
-        Object.keys(configs).forEach(param => {
-            const config = configs[param];
-            const canvas = document.getElementById(`chart-${param}`);
-            
-            if (!canvas) return;
-            
-            const valores = this.parametros.map(p => p[param]).filter(v => v !== null && v !== undefined);
-            const fechas = this.parametros.filter(p => p[param] !== null && p[param] !== undefined).map(p => new Date(p.fecha).toLocaleDateString());
-            
-            if (valores.length < 2) return;
-            
-            const ctx = canvas.getContext('2d');
-            
-            // Escalas Y fijas para mini gráficos
-            const escalasY = {
-                densidad: { min: 1.0245, max: 1.0255 },
-                kh: { min: 6, max: 12 },
-                calcio: { min: 350, max: 500 },
-                magnesio: { min: 1200, max: 1500 },
-                nitratos: { min: 0, max: 25 },
-                fosfatos: { min: 0, max: 0.15 },
-                temperatura: { min: 22, max: 28 }
-            };
-            
-            const escalaY = escalasY[param];
-            
-            this.charts[param] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: fechas.slice(-10), // Últimos 10 puntos
-                    datasets: [{
-                        label: config.label,
-                        data: valores.slice(-10),
-                        borderColor: config.color,
-                        backgroundColor: config.color + '20',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 2,
-                        pointHoverRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: false
-                        },
-                        y: {
-                            display: false,
-                            min: escalaY ? escalaY.min : undefined,
-                            max: escalaY ? escalaY.max : undefined,
-                            beginAtZero: false
-                        }
-                    },
-                    elements: {
-                        point: {
-                            hoverBackgroundColor: config.color
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
-                }
-            });
-        });
-    }
+    // Función eliminada - ahora usamos SVG estáticos
     
     createDetailedCharts(configs) {
         const container = document.getElementById('detailed-charts-container');
@@ -526,12 +440,17 @@ class CoralTrack {
             
             if (valores.length >= 2) {
                 html += `
-                    <div style="background: white; padding: 12px; margin: 8px 0; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-left: 4px solid ${config.color};">
-                        <h4 style="margin: 0 0 8px 0; color: #333; font-size: 0.95rem; font-weight: 600;">
-                            ${config.label}
-                        </h4>
-                        <div style="height: ${param === 'densidad' ? '50px' : '200px'}; position: relative; margin: 0 -10px;">
-                            <canvas id="detailed-chart-${param}"></canvas>
+                    <div class="collapsible-chart" data-param="${param}" style="background: white; margin-bottom: 2px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid ${config.color};">
+                        <div class="chart-header" onclick="app.toggleChart('${param}')" style="padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                            <h4 style="margin: 0; color: #333; font-size: 0.8rem; font-weight: 600;">
+                                ${config.label}
+                            </h4>
+                            <span class="toggle-icon" style="font-size: 18px; color: #333; font-weight: bold;">▼</span>
+                        </div>
+                        <div class="chart-content" style="display: none; padding: 0 12px 12px;">
+                            <div style="height: 80px; position: relative;">
+                                <canvas id="detailed-chart-${param}"></canvas>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -590,17 +509,22 @@ class CoralTrack {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        devicePixelRatio: window.devicePixelRatio || 1,
                         plugins: {
                             legend: { display: false },
                             tooltip: {
-                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                enabled: true,
+                                mode: 'nearest',
+                                intersect: false,
+                                backgroundColor: 'rgba(0,0,0,0.8)',
                                 titleColor: '#fff',
                                 bodyColor: '#fff',
-                                cornerRadius: 8,
-                                padding: 12,
-                                titleFont: { size: 12 },
-                                bodyFont: { size: 11 },
-                                displayColors: false
+                                cornerRadius: 6,
+                                padding: 8,
+                                titleFont: { size: 10 },
+                                bodyFont: { size: 9 },
+                                displayColors: false,
+                                caretSize: 4
                             }
                         },
                         scales: {
@@ -659,15 +583,23 @@ class CoralTrack {
             const fotosOrdenadas = [...this.fotos[especie]].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             
             grid.innerHTML = fotosOrdenadas.map((foto, index) => `
-                <div class="photo-item" onclick="app.mostrarFoto('${foto.src}', '${foto.fecha}', '${foto.nota || ''}')">
+                <div class="photo-item" draggable="true" data-index="${index}" data-especie="${especie}" onclick="app.mostrarFoto('${foto.src}', '${foto.fecha}', '${foto.nota || ''}')">
                     <img src="${foto.src}" alt="Coral ${especie}" loading="lazy">
                     <div class="photo-overlay">
                         <div class="photo-date">${new Date(foto.fecha).toLocaleDateString()}</div>
                         ${foto.nota ? `<div class="photo-note-preview">📝 ${foto.nota.substring(0, 30)}${foto.nota.length > 30 ? '...' : ''}</div>` : ''}
                     </div>
-                    <button class="photo-delete" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})">×</button>
+                    <div class="photo-actions">
+                        <button class="photo-move-up" onclick="event.stopPropagation(); app.moverFoto('${especie}', ${index}, 'up')" title="Mover arriba">↑</button>
+                        <button class="photo-move-down" onclick="event.stopPropagation(); app.moverFoto('${especie}', ${index}, 'down')" title="Mover abajo">↓</button>
+                        <button class="photo-edit-note" onclick="event.stopPropagation(); app.editarNota('${especie}', ${index})" title="Editar nota">📝</button>
+                        <button class="photo-edit" onclick="event.stopPropagation(); app.editarFoto('${especie}', ${index})" title="Cambiar foto">📷</button>
+                        <button class="photo-delete" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})" title="Eliminar">×</button>
+                    </div>
                 </div>
             `).join('');
+            
+            // Ya no necesitamos drag and drop
         });
     }
 
@@ -778,6 +710,48 @@ class CoralTrack {
         }
     }
     
+    editarNota(especie, index) {
+        const foto = this.fotos[especie][index];
+        const nuevaNota = prompt('📝 Editar nota:', foto.nota || '');
+        
+        if (nuevaNota !== null) {
+            this.fotos[especie][index].nota = nuevaNota.trim();
+            localStorage.setItem('fotos', JSON.stringify(this.fotos));
+            this.renderFotos();
+            this.mostrarConfirmacion('📝 Nota actualizada');
+        }
+    }
+    
+    editarFoto(especie, index) {
+        const fileInput = document.getElementById('file-input');
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.comprimirImagen(file, (imagenComprimida) => {
+                    this.fotos[especie][index].src = imagenComprimida;
+                    localStorage.setItem('fotos', JSON.stringify(this.fotos));
+                    this.renderFotos();
+                    this.mostrarConfirmacion('📷 Foto actualizada');
+                });
+            }
+        };
+        fileInput.click();
+    }
+    
+    moverFoto(especie, index, direccion) {
+        const fotos = this.fotos[especie];
+        const newIndex = direccion === 'up' ? index - 1 : index + 1;
+        
+        if (newIndex >= 0 && newIndex < fotos.length) {
+            const foto = fotos.splice(index, 1)[0];
+            fotos.splice(newIndex, 0, foto);
+            
+            localStorage.setItem('fotos', JSON.stringify(this.fotos));
+            this.renderFotos();
+            this.mostrarConfirmacion(`🔄 Foto movida ${direccion === 'up' ? 'arriba' : 'abajo'}`);
+        }
+    }
+    
     comprimirImagen(file, callback) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -851,6 +825,11 @@ class CoralTrack {
         const tabsContainer = document.querySelector('.coral-tabs');
         const addButton = tabsContainer.querySelector('.add-species');
         
+        // Verificar si ya existe para evitar duplicados
+        if (document.querySelector(`[data-coral="${especieId}"]`)) {
+            return;
+        }
+        
         const newTab = document.createElement('button');
         newTab.className = 'coral-tab';
         newTab.setAttribute('data-coral', especieId);
@@ -872,8 +851,8 @@ class CoralTrack {
         newContent.id = especieId;
         newContent.className = 'coral-content';
         newContent.innerHTML = `
-            <button class="btn-upload" onclick="app.cargarFoto('${especieId}');">📷 Agregar Foto</button>
             <div class="photo-grid" id="grid-${especieId}"></div>
+            <button class="btn-add-photo" onclick="app.cargarFoto('${especieId}')">📷 Agregar Foto</button>
         `;
         
         galeriaSection.appendChild(newContent);
@@ -1785,3 +1764,18 @@ class CoralTrack {
 
 
 const app = new CoralTrack();
+
+// Función global para toggle de gráficos
+app.toggleChart = function(param) {
+    const chartDiv = document.querySelector(`[data-param="${param}"]`);
+    const content = chartDiv.querySelector('.chart-content');
+    const icon = chartDiv.querySelector('.toggle-icon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▼';
+    }
+};
