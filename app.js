@@ -69,6 +69,49 @@ class CoralTrack {
             this.renderHistorial();
             this.checkAlerts();
         }, 300);
+        
+        // Manejar resize de ventana para gráficos
+        window.addEventListener('resize', this.debounce(() => {
+            this.handleResize();
+        }, 250));
+        
+        // Verificar tamaño de gráficos periódicamente
+        setInterval(() => {
+            this.checkChartSizes();
+        }, 5000);
+    }
+    
+    checkChartSizes() {
+        // Verificar que los gráficos no excedan los límites
+        const charts = document.querySelectorAll('#charts canvas, #detailed-charts-container canvas');
+        charts.forEach(canvas => {
+            const rect = canvas.getBoundingClientRect();
+            if (rect.height > 250 || rect.width > window.innerWidth) {
+                canvas.style.maxHeight = '250px';
+                canvas.style.maxWidth = '100%';
+                canvas.style.width = '100%';
+            }
+        });
+    }
+    
+    handleResize() {
+        // Recrear gráficos cuando cambie el tamaño de la ventana
+        if (this.parametros.length > 0) {
+            const configs = {
+                densidad: { label: 'Densidad', color: '#FF6B6B' },
+                kh: { label: 'KH (dKH)', color: '#4ECDC4' },
+                calcio: { label: 'Calcio (ppm)', color: '#45B7D1' },
+                magnesio: { label: 'Magnesio (ppm)', color: '#96CEB4' },
+                nitratos: { label: 'Nitratos (ppm)', color: '#FFEAA7' },
+                fosfatos: { label: 'Fosfatos (ppm)', color: '#DDA0DD' },
+                temperatura: { label: 'Temperatura (°C)', color: '#FFB347' }
+            };
+            
+            setTimeout(() => {
+                this.createRealCharts(configs);
+                this.createDetailedCharts(configs);
+            }, 100);
+        }
     }
 
     setupTabs() {
@@ -286,7 +329,7 @@ class CoralTrack {
                 const rangeBar = this.createRangeBar(param, ultimo);
                 
                 html += `
-                    <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; min-height: 120px;">
+                    <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; min-height: 120px; max-height: 150px; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <h3 style="margin: 0; font-size: 16px; color: #333;">${config.label}</h3>
                             <div style="display: flex; align-items: center; gap: 8px;">
@@ -301,8 +344,8 @@ class CoralTrack {
                                 <div style="font-size: 24px; font-weight: bold; color: ${estado.color}; margin-bottom: 5px;">${ultimo}</div>
                                 <div style="font-size: 11px; padding: 3px 6px; border-radius: 10px; background: ${estado.bg}; color: ${estado.color};">${estado.text}</div>
                             </div>
-                            <div style="text-align: right; width: 120px;">
-                                <canvas id="${chartId}" width="120" height="60"></canvas>
+                            <div style="text-align: right; width: 120px; height: 60px; overflow: hidden;">
+                                <canvas id="${chartId}" width="120" height="60" style="max-height: 60px !important; max-width: 120px !important;"></canvas>
                                 <div style="font-size: 11px; color: #666; margin-top: 3px;">${valores.length} med</div>
                             </div>
                         </div>
@@ -484,7 +527,8 @@ class CoralTrack {
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2, // Relación de aspecto fija para evitar expansión
                     plugins: {
                         legend: {
                             display: false
@@ -519,6 +563,9 @@ class CoralTrack {
         const container = document.getElementById('detailed-charts-container');
         if (!container || this.parametros.length < 2) return;
         
+        // Limpiar gráficos detallados existentes
+        this.cleanupDetailedCharts();
+        
         let html = '';
         Object.keys(configs).forEach(param => {
             const config = configs[param];
@@ -526,12 +573,12 @@ class CoralTrack {
             
             if (valores.length >= 2) {
                 html += `
-                    <div style="background: white; padding: 12px; margin: 8px 0; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-left: 4px solid ${config.color};">
+                    <div style="background: white; padding: 12px; margin: 8px 0; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-left: 4px solid ${config.color}; max-height: 300px; overflow: hidden;">
                         <h4 style="margin: 0 0 8px 0; color: #333; font-size: 0.95rem; font-weight: 600;">
                             ${config.label}
                         </h4>
-                        <div style="height: ${param === 'densidad' ? '50px' : '200px'}; position: relative; margin: 0 -10px;">
-                            <canvas id="detailed-chart-${param}"></canvas>
+                        <div style="height: ${param === 'densidad' ? '80px' : '220px'}; position: relative; margin: 0 -10px; max-height: 220px;">
+                            <canvas id="detailed-chart-${param}" style="max-height: 220px !important; width: 100% !important;"></canvas>
                         </div>
                     </div>
                 `;
@@ -589,7 +636,8 @@ class CoralTrack {
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false,
+                        maintainAspectRatio: true,
+                        aspectRatio: 3, // Relación de aspecto fija para gráficos detallados
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -613,8 +661,6 @@ class CoralTrack {
                                 ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 5 },
                                 min: escalaY ? escalaY.min : undefined,
                                 max: escalaY ? escalaY.max : undefined,
-                                min: escalaY ? escalaY.min : undefined,
-                                max: escalaY ? escalaY.max : undefined,
                                 beginAtZero: false
                             }
                         }
@@ -622,6 +668,29 @@ class CoralTrack {
                 });
             });
         }, 200);
+    }
+    
+    cleanupDetailedCharts() {
+        // Destruir gráficos detallados existentes para evitar expansión
+        const configs = {
+            densidad: { label: 'Densidad', color: '#FF6B6B' },
+            kh: { label: 'KH (dKH)', color: '#4ECDC4' },
+            calcio: { label: 'Calcio (ppm)', color: '#45B7D1' },
+            magnesio: { label: 'Magnesio (ppm)', color: '#96CEB4' },
+            nitratos: { label: 'Nitratos (ppm)', color: '#FFEAA7' },
+            fosfatos: { label: 'Fosfatos (ppm)', color: '#DDA0DD' },
+            temperatura: { label: 'Temperatura (°C)', color: '#FFB347' }
+        };
+        
+        Object.keys(configs).forEach(param => {
+            const canvas = document.getElementById(`detailed-chart-${param}`);
+            if (canvas) {
+                const chartInstance = Chart.getChart(canvas);
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+            }
+        });
     }
 
     renderHistorial() {

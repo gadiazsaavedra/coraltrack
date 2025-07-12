@@ -169,6 +169,46 @@ header h1 {
     display: block;
     visibility: visible;
     opacity: 1;
+    max-height: none;
+    overflow: visible;
+}
+
+/* Contenedor específico para gráficos detallados */
+.detailed-charts {
+    margin-bottom: 2rem;
+}
+
+#detailed-charts-container {
+    max-height: none;
+    overflow: visible;
+}
+
+/* Límites de altura para los contenedores de gráficos individuales */
+#detailed-charts-container > div {
+    max-height: 300px;
+    overflow: hidden;
+}
+
+#detailed-charts-container canvas {
+    max-height: 250px !important;
+    width: 100% !important;
+}
+
+/* Prevenir expansión de gráficos en dispositivos táctiles */
+@media (hover: none) and (pointer: coarse) {
+    #charts canvas,
+    #detailed-charts-container canvas {
+        touch-action: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+    
+    #charts > div,
+    #detailed-charts-container > div {
+        touch-action: manipulation;
+    }
 }
 
 .charts-container:empty::before {
@@ -696,6 +736,27 @@ header h1 {
     
     .chart-main {
         gap: 1rem;
+    }
+    
+    /* Prevenir expansión de gráficos en móviles */
+    #charts > div {
+        max-height: 140px !important;
+        overflow: hidden !important;
+    }
+    
+    #charts canvas {
+        max-height: 50px !important;
+        max-width: 100px !important;
+    }
+    
+    #detailed-charts-container > div {
+        max-height: 250px !important;
+        overflow: hidden !important;
+    }
+    
+    #detailed-charts-container canvas {
+        max-height: 180px !important;
+        width: 100% !important;
     }
 }
 
