@@ -580,18 +580,16 @@ class CoralTrack {
             const grid = document.getElementById(`grid-${especie}`);
             if (!grid) return;
             
-            const fotosOrdenadas = [...this.fotos[especie]].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            const fotosOrdenadas = [...this.fotos[especie]];
             
             grid.innerHTML = fotosOrdenadas.map((foto, index) => `
-                <div class="photo-item" draggable="true" data-index="${index}" data-especie="${especie}" onclick="app.mostrarFoto('${foto.src}', '${foto.fecha}', '${foto.nota || ''}')">
-                    <img src="${foto.src}" alt="Coral ${especie}" loading="lazy">
+                <div class="photo-item" data-index="${index}" data-especie="${especie}">
+                    <img src="${foto.src}" alt="Coral ${especie}" loading="lazy" draggable="false">
                     <div class="photo-overlay">
                         <div class="photo-date">${new Date(foto.fecha).toLocaleDateString()}</div>
                         ${foto.nota ? `<div class="photo-note-preview">📝 ${foto.nota.substring(0, 30)}${foto.nota.length > 30 ? '...' : ''}</div>` : ''}
                     </div>
                     <div class="photo-actions">
-                        <button class="photo-move-up" onclick="event.stopPropagation(); app.moverFoto('${especie}', ${index}, 'up')" title="Mover arriba">↑</button>
-                        <button class="photo-move-down" onclick="event.stopPropagation(); app.moverFoto('${especie}', ${index}, 'down')" title="Mover abajo">↓</button>
                         <button class="photo-edit-note" onclick="event.stopPropagation(); app.editarNota('${especie}', ${index})" title="Editar nota">📝</button>
                         <button class="photo-edit" onclick="event.stopPropagation(); app.editarFoto('${especie}', ${index})" title="Cambiar foto">📷</button>
                         <button class="photo-delete" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})" title="Eliminar">×</button>
@@ -599,7 +597,10 @@ class CoralTrack {
                 </div>
             `).join('');
             
-            // Ya no necesitamos drag and drop
+            // Configurar drag and drop
+            this.setupDragAndDrop(grid, especie);
+            
+
         });
     }
 
@@ -738,19 +739,103 @@ class CoralTrack {
         fileInput.click();
     }
     
-    moverFoto(especie, index, direccion) {
-        const fotos = this.fotos[especie];
-        const newIndex = direccion === 'up' ? index - 1 : index + 1;
+    setupDragAndDrop(grid, especie) {
+        const photos = grid.querySelectorAll('.photo-item');
         
-        if (newIndex >= 0 && newIndex < fotos.length) {
-            const foto = fotos.splice(index, 1)[0];
-            fotos.splice(newIndex, 0, foto);
+        photos.forEach(photo => {
+            let startPos = null;
+            let hasMoved = false;
+            let draggedOver = null;
             
-            localStorage.setItem('fotos', JSON.stringify(this.fotos));
-            this.renderFotos();
-            this.mostrarConfirmacion(`🔄 Foto movida ${direccion === 'up' ? 'arriba' : 'abajo'}`);
-        }
+            photo.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.photo-actions')) return;
+                
+                startPos = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY
+                };
+                hasMoved = false;
+                draggedOver = null;
+            });
+            
+            photo.addEventListener('touchmove', (e) => {
+                if (!startPos) return;
+                
+                const deltaX = Math.abs(e.touches[0].clientX - startPos.x);
+                const deltaY = Math.abs(e.touches[0].clientY - startPos.y);
+                
+                if (deltaX > 15 || deltaY > 15) {
+                    hasMoved = true;
+                    photo.style.opacity = '0.7';
+                    photo.style.zIndex = '1000';
+                    photo.style.transform = `translate(${e.touches[0].clientX - startPos.x}px, ${e.touches[0].clientY - startPos.y}px) scale(1.05)`;
+                    
+                    // Detectar foto destino
+                    photo.style.pointerEvents = 'none';
+                    const dropTarget = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY)?.closest('.photo-item');
+                    photo.style.pointerEvents = '';
+                    
+                    // Limpiar highlight anterior
+                    if (draggedOver && draggedOver !== dropTarget) {
+                        draggedOver.style.backgroundColor = '';
+                    }
+                    
+                    // Highlight nueva foto
+                    if (dropTarget && dropTarget !== photo) {
+                        dropTarget.style.backgroundColor = 'rgba(33, 150, 243, 0.3)';
+                        draggedOver = dropTarget;
+                    } else {
+                        draggedOver = null;
+                    }
+                }
+            });
+            
+            photo.addEventListener('touchend', (e) => {
+                if (!startPos) return;
+                
+                // Limpiar highlight
+                if (draggedOver) {
+                    draggedOver.style.backgroundColor = '';
+                }
+                
+                if (hasMoved && draggedOver) {
+                    const dragIndex = parseInt(photo.dataset.index);
+                    const dropIndex = parseInt(draggedOver.dataset.index);
+                    
+                    if (dragIndex !== dropIndex && dragIndex >= 0 && dropIndex >= 0) {
+                        // Intercambiar en el array
+                        const temp = this.fotos[especie][dragIndex];
+                        this.fotos[especie][dragIndex] = this.fotos[especie][dropIndex];
+                        this.fotos[especie][dropIndex] = temp;
+                        
+                        localStorage.setItem('fotos', JSON.stringify(this.fotos));
+                        this.mostrarConfirmacion('🔄 Fotos intercambiadas');
+                        
+                        // Re-renderizar inmediatamente
+                        setTimeout(() => this.renderFotos(), 50);
+                        return;
+                    }
+                } else if (!hasMoved) {
+                    // Solo clic, abrir foto
+                    const fotoData = this.fotos[especie][parseInt(photo.dataset.index)];
+                    if (fotoData) {
+                        this.mostrarFoto(fotoData.src, fotoData.fecha, fotoData.nota || '');
+                    }
+                }
+                
+                // Restaurar estado
+                photo.style.opacity = '1';
+                photo.style.transform = 'scale(1)';
+                photo.style.zIndex = '';
+                photo.style.pointerEvents = '';
+                startPos = null;
+                hasMoved = false;
+                draggedOver = null;
+            });
+        });
     }
+    
+
     
     comprimirImagen(file, callback) {
         const canvas = document.createElement('canvas');
