@@ -107,6 +107,13 @@ class CoralTrack {
             document.getElementById('import-file').click();
         });
         
+        // Botón debug para reparar especies
+        if (document.getElementById('debug-especies')) {
+            document.getElementById('debug-especies').addEventListener('click', () => {
+                this.repararEspecies();
+            });
+        }
+        
         document.getElementById('import-file').addEventListener('change', (e) => {
             this.importarDatos(e.target.files[0]);
         });
@@ -1548,6 +1555,28 @@ class CoralTrack {
     
     getMetas() {
         return JSON.parse(localStorage.getItem('metas')) || [];
+    }
+    
+    repararEspecies() {
+        console.log('Reparando especies...');
+        console.log('Especies en datos:', Object.keys(this.fotos));
+        
+        // Recrear todas las pestañas
+        Object.keys(this.fotos).forEach(especieId => {
+            if (especieId !== 'pachyclavularia' && especieId !== 'palythoa') {
+                const nombreEspecie = especieId.charAt(0).toUpperCase() + especieId.slice(1).replace(/-/g, ' ');
+                
+                // Verificar si la pestaña existe
+                if (!document.querySelector(`[data-coral="${especieId}"]`)) {
+                    console.log('Recreando pestaña para:', especieId);
+                    this.crearTabEspecie(especieId, nombreEspecie);
+                    this.crearContenidoEspecie(especieId, nombreEspecie);
+                }
+            }
+        });
+        
+        this.renderFotos();
+        this.mostrarConfirmacion('✅ Especies reparadas');
     }
     
     expandirGrafico(param, label, color) {
