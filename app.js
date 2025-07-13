@@ -279,12 +279,12 @@ class CoralTrack {
                 const rangeBar = this.createRangeBar(param, ultimo);
                 
                 html += `
-                    <div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; height: 120px; max-height: 120px; overflow: hidden;">
+                    <div onclick="app.expandirGrafico('${param}', '${config.label}', '${config.color}')" style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid ${config.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block; width: 100%; height: 120px; max-height: 120px; overflow: hidden; cursor: pointer;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <h3 style="margin: 0; font-size: 16px; color: #333;">${config.label}</h3>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <button onclick="app.mostrarCalculadora('${param}', '${config.label}', ${ultimo})" style="width: 24px; height: 24px; border-radius: 50%; background: #2196F3; color: white; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🧮</button>
-                                <button onclick="app.agregarNotaParametro('${param}', '${config.label}')" style="width: 24px; height: 24px; border-radius: 50%; background: ${config.color}; color: white; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+                                <button onclick="event.stopPropagation(); app.mostrarCalculadora('${param}', '${config.label}', ${ultimo})" style="width: 24px; height: 24px; border-radius: 50%; background: #2196F3; color: white; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🧮</button>
+                                <button onclick="event.stopPropagation(); app.agregarNotaParametro('${param}', '${config.label}')" style="width: 24px; height: 24px; border-radius: 50%; background: ${config.color}; color: white; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
                                 <span style="font-size: 18px;">${tendencia}</span>
                             </div>
                         </div>
@@ -448,7 +448,7 @@ class CoralTrack {
                             <span class="toggle-icon" style="font-size: 18px; color: #333; font-weight: bold;">▼</span>
                         </div>
                         <div class="chart-content" style="display: none; padding: 0 12px 12px;">
-                            <div style="height: 80px; position: relative;">
+                            <div onclick="app.expandirGrafico('${param}', '${config.label}', '${config.color}')" style="height: 80px; position: relative; cursor: pointer;">
                                 <canvas id="detailed-chart-${param}"></canvas>
                             </div>
                         </div>
@@ -1548,6 +1548,125 @@ class CoralTrack {
     
     getMetas() {
         return JSON.parse(localStorage.getItem('metas')) || [];
+    }
+    
+    expandirGrafico(param, label, color) {
+        const modal = document.createElement('div');
+        modal.id = 'chart-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 100%;
+            height: 80vh;
+            position: relative;
+        `;
+        
+        const parametrosConFecha = this.parametros.filter(p => p[param] !== null && p[param] !== undefined);
+        const valores = parametrosConFecha.map(p => p[param]);
+        const fechas = parametrosConFecha.map(p => new Date(p.fecha).toLocaleDateString());
+        
+        content.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.5rem;">${label}</h3>
+                <button onclick="document.getElementById('chart-modal').remove()" style="width: 40px; height: 40px; border: none; background: #f44336; color: white; border-radius: 50%; font-size: 20px; cursor: pointer;">×</button>
+            </div>
+            <div style="height: calc(100% - 80px); position: relative;">
+                <canvas id="expanded-chart-${param}"></canvas>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // Crear gráfico expandido
+        setTimeout(() => {
+            const canvas = document.getElementById(`expanded-chart-${param}`);
+            if (canvas && valores.length >= 2) {
+                const ctx = canvas.getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: fechas,
+                        datasets: [{
+                            label: label,
+                            data: valores,
+                            borderColor: color,
+                            backgroundColor: color + '15',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: color,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                cornerRadius: 8,
+                                padding: 12,
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 12 }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#f0f0f0' },
+                                ticks: { color: '#666', font: { size: 12 } }
+                            },
+                            y: {
+                                grid: { color: '#f0f0f0' },
+                                ticks: { color: '#666', font: { size: 12 } },
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            }
+        }, 100);
+        
+        // Cerrar al hacer clic fuera
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Cerrar con tecla ESC
+        const closeOnEsc = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', closeOnEsc);
+            }
+        };
+        document.addEventListener('keydown', closeOnEsc);
     }
     
     verificarEstabilidad(dias) {
