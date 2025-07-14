@@ -2,6 +2,8 @@ class CoralTrack {
     constructor() {
         this.parametros = JSON.parse(localStorage.getItem('parametros')) || [];
         this.fotos = JSON.parse(localStorage.getItem('fotos')) || {};
+        this.inventario = JSON.parse(localStorage.getItem('inventario')) || [];
+        this.eventos = JSON.parse(localStorage.getItem('eventos')) || [];
         
         // Asegurar que ambas especies existen
         if (!this.fotos.pachyclavularia) this.fotos.pachyclavularia = [];
@@ -50,6 +52,7 @@ class CoralTrack {
         this.setupTabs();
         this.setupForm();
         this.setupCoralTabs();
+        this.setupBioTabs();
         this.setupModal();
         this.setupPhotoModal();
         this.setFechaActual();
@@ -58,6 +61,7 @@ class CoralTrack {
         this.renderHistorial();
         this.renderFotos();
         this.renderAvanzado();
+        this.renderBiologico();
         this.checkAlerts();
         this.setupReminders();
 
@@ -1372,6 +1376,8 @@ class CoralTrack {
     renderAvanzado() {
         this.renderCalculadoras();
         this.renderComparacionTemporal();
+        this.renderAnalisisPredictivo();
+        this.renderCorrelaciones();
         this.renderMetasLogros();
     }
     
@@ -1432,6 +1438,786 @@ class CoralTrack {
                 <div style="font-size: 14px; color: #666;">${comparacion.resumen}</div>
             </div>
         `;
+    }
+    
+    renderAnalisisPredictivo() {
+        const container = document.getElementById('analisis-predictivo');
+        if (!container || this.parametros.length < 5) {
+            if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Necesitas al menos 5 mediciones para análisis predictivo</div>';
+            return;
+        }
+        
+        const predicciones = this.calcularPredicciones();
+        const alertas = this.calcularAlertasPreventivas();
+        const patrones = this.detectarPatrones();
+        
+        container.innerHTML = `
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                <h4 style="margin: 0 0 15px 0;">🔮 Predicciones (próximas 2 semanas)</h4>
+                ${predicciones.map(pred => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: ${pred.alerta ? '#FFF3E0' : '#E8F5E8'}; border-radius: 6px; border-left: 4px solid ${pred.alerta ? '#FF9800' : '#4CAF50'};">
+                        <div style="font-weight: 600; color: #333;">${pred.parametro}</div>
+                        <div style="font-size: 14px; color: #666;">${pred.prediccion}</div>
+                        ${pred.confianza ? `<div style="font-size: 12px; color: #999;">Confianza: ${pred.confianza}%</div>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                <h4 style="margin: 0 0 15px 0;">⚠️ Alertas Preventivas</h4>
+                ${alertas.length > 0 ? alertas.map(alerta => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: #FFEBEE; border-radius: 6px; border-left: 4px solid #f44336;">
+                        <div style="font-weight: 600; color: #C62828;">${alerta.titulo}</div>
+                        <div style="font-size: 14px; color: #666;">${alerta.mensaje}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">${alerta.accion}</div>
+                    </div>
+                `).join('') : '<div style="color: #4CAF50; text-align: center; padding: 10px;">✅ No hay alertas preventivas</div>'}
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0;">📊 Patrones Detectados</h4>
+                ${patrones.length > 0 ? patrones.map(patron => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: #E3F2FD; border-radius: 6px; border-left: 4px solid #2196F3;">
+                        <div style="font-weight: 600; color: #1565C0;">${patron.tipo}</div>
+                        <div style="font-size: 14px; color: #666;">${patron.descripcion}</div>
+                    </div>
+                `).join('') : '<div style="color: #666; text-align: center; padding: 10px;">No se detectaron patrones claros aún</div>'}
+            </div>
+        `;
+    }
+    
+    calcularPredicciones() {
+        const predicciones = [];
+        const parametros = ['nitratos', 'fosfatos', 'kh', 'calcio'];
+        
+        parametros.forEach(param => {
+            const datos = this.parametros.filter(p => p[param] !== null).slice(-10);
+            if (datos.length >= 3) {
+                const valores = datos.map(d => d[param]);
+                const tendencia = this.calcularTendencia(valores);
+                const valorActual = valores[valores.length - 1];
+                const valorPredicto = valorActual + (tendencia * 14); // 14 días
+                
+                const rangos = {
+                    nitratos: { min: 0, max: 10, unidad: 'ppm' },
+                    fosfatos: { min: 0, max: 0.05, unidad: 'ppm' },
+                    kh: { min: 8, max: 10, unidad: 'dKH' },
+                    calcio: { min: 400, max: 450, unidad: 'ppm' }
+                };
+                
+                const rango = rangos[param];
+                const alerta = valorPredicto < rango.min || valorPredicto > rango.max;
+                const confianza = Math.min(95, Math.max(60, 100 - (Math.abs(tendencia) * 20)));
+                
+                predicciones.push({
+                    parametro: param.charAt(0).toUpperCase() + param.slice(1),
+                    prediccion: `Valor estimado: ${valorPredicto.toFixed(2)} ${rango.unidad}`,
+                    alerta,
+                    confianza: Math.round(confianza)
+                });
+            }
+        });
+        
+        return predicciones;
+    }
+    
+    calcularAlertasPreventivas() {
+        const alertas = [];
+        const ahora = new Date();
+        
+        // Alerta de cambio de agua
+        const ultimosCambios = this.parametros.filter(p => p.notas && p.notas.toLowerCase().includes('cambio'));
+        if (ultimosCambios.length > 0) {
+            const ultimoCambio = new Date(ultimosCambios[ultimosCambios.length - 1].fecha);
+            const diasSinCambio = Math.floor((ahora - ultimoCambio) / (1000 * 60 * 60 * 24));
+            
+            if (diasSinCambio > 10) {
+                alertas.push({
+                    titulo: 'Cambio de Agua Recomendado',
+                    mensaje: `Han pasado ${diasSinCambio} días desde tu último cambio de agua`,
+                    accion: 'Considera hacer un cambio del 20-25%'
+                });
+            }
+        }
+        
+        // Alerta de tendencia de nitratos
+        const nitratos = this.parametros.filter(p => p.nitratos !== null).slice(-5);
+        if (nitratos.length >= 3) {
+            const valores = nitratos.map(n => n.nitratos);
+            const tendencia = this.calcularTendencia(valores);
+            
+            if (tendencia > 0.5) {
+                alertas.push({
+                    titulo: 'Nitratos en Aumento',
+                    mensaje: 'Tus nitratos han mostrado tendencia al alza',
+                    accion: 'Revisa alimentación y considera cambio de agua'
+                });
+            }
+        }
+        
+        return alertas;
+    }
+    
+    detectarPatrones() {
+        const patrones = [];
+        
+        // Patrón de estabilidad
+        const ultimasMediciones = this.parametros.slice(-10);
+        if (ultimasMediciones.length >= 5) {
+            const estabilidad = this.calcularEstabilidad(ultimasMediciones);
+            
+            if (estabilidad > 0.8) {
+                patrones.push({
+                    tipo: 'Alta Estabilidad',
+                    descripcion: 'Tus parámetros han sido muy estables en las últimas mediciones'
+                });
+            } else if (estabilidad < 0.4) {
+                patrones.push({
+                    tipo: 'Inestabilidad Detectada',
+                    descripcion: 'Tus parámetros muestran variaciones significativas'
+                });
+            }
+        }
+        
+        // Patrón de frecuencia de medición
+        if (this.parametros.length >= 5) {
+            const intervalos = [];
+            for (let i = 1; i < this.parametros.length; i++) {
+                const dias = Math.floor((new Date(this.parametros[i].fecha) - new Date(this.parametros[i-1].fecha)) / (1000 * 60 * 60 * 24));
+                intervalos.push(dias);
+            }
+            
+            const promedioIntervalo = intervalos.reduce((a, b) => a + b, 0) / intervalos.length;
+            
+            if (promedioIntervalo <= 7) {
+                patrones.push({
+                    tipo: 'Monitoreo Frecuente',
+                    descripcion: `Mides tus parámetros cada ${Math.round(promedioIntervalo)} días en promedio`
+                });
+            }
+        }
+        
+        return patrones;
+    }
+    
+    calcularTendencia(valores) {
+        if (valores.length < 2) return 0;
+        
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        const n = valores.length;
+        
+        for (let i = 0; i < n; i++) {
+            sumX += i;
+            sumY += valores[i];
+            sumXY += i * valores[i];
+            sumXX += i * i;
+        }
+        
+        return (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    }
+    
+    calcularEstabilidad(mediciones) {
+        const parametros = ['kh', 'calcio', 'nitratos', 'fosfatos'];
+        let estabilidadTotal = 0;
+        let parametrosValidos = 0;
+        
+        parametros.forEach(param => {
+            const valores = mediciones.filter(m => m[param] !== null).map(m => m[param]);
+            if (valores.length >= 3) {
+                const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+                const varianza = valores.reduce((sum, val) => sum + Math.pow(val - promedio, 2), 0) / valores.length;
+                const coeficienteVariacion = Math.sqrt(varianza) / promedio;
+                
+                estabilidadTotal += Math.max(0, 1 - coeficienteVariacion);
+                parametrosValidos++;
+            }
+        });
+        
+        return parametrosValidos > 0 ? estabilidadTotal / parametrosValidos : 0;
+    }
+    
+    renderCorrelaciones() {
+        const container = document.getElementById('correlaciones');
+        if (!container || this.parametros.length < 8) {
+            if (container) container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Necesitas al menos 8 mediciones para análisis de correlaciones</div>';
+            return;
+        }
+        
+        const causaEfecto = this.analizarCausaEfecto();
+        const impactoCambios = this.analizarImpactoCambios();
+        const correlacionFotos = this.analizarCorrelacionFotos();
+        const efectividadAcciones = this.analizarEfectividadAcciones();
+        
+        container.innerHTML = `
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                <h4 style="margin: 0 0 15px 0;">🔗 Análisis Causa-Efecto</h4>
+                ${causaEfecto.length > 0 ? causaEfecto.map(correlacion => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: ${correlacion.fuerza > 0.6 ? '#E8F5E8' : correlacion.fuerza > 0.3 ? '#FFF3E0' : '#F5F5F5'}; border-radius: 6px; border-left: 4px solid ${correlacion.fuerza > 0.6 ? '#4CAF50' : correlacion.fuerza > 0.3 ? '#FF9800' : '#999'};">
+                        <div style="font-weight: 600; color: #333;">${correlacion.relacion}</div>
+                        <div style="font-size: 14px; color: #666;">${correlacion.descripcion}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">Correlación: ${(correlacion.fuerza * 100).toFixed(0)}%</div>
+                    </div>
+                `).join('') : '<div style="color: #666; text-align: center; padding: 10px;">No se detectaron correlaciones significativas</div>'}
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                <h4 style="margin: 0 0 15px 0;">💧 Impacto de Cambios de Agua</h4>
+                ${impactoCambios.length > 0 ? impactoCambios.map(impacto => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: ${impacto.efectivo ? '#E8F5E8' : '#FFF3E0'}; border-radius: 6px; border-left: 4px solid ${impacto.efectivo ? '#4CAF50' : '#FF9800'};">
+                        <div style="font-weight: 600; color: #333;">${impacto.parametro}</div>
+                        <div style="font-size: 14px; color: #666;">${impacto.efecto}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">${impacto.fecha}</div>
+                    </div>
+                `).join('') : '<div style="color: #666; text-align: center; padding: 10px;">No hay suficientes cambios de agua registrados</div>'}
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                <h4 style="margin: 0 0 15px 0;">📸 Correlación Fotos-Parámetros</h4>
+                ${correlacionFotos.length > 0 ? correlacionFotos.map(corr => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: #E3F2FD; border-radius: 6px; border-left: 4px solid #2196F3;">
+                        <div style="font-weight: 600; color: #1565C0;">${corr.insight}</div>
+                        <div style="font-size: 14px; color: #666;">${corr.detalle}</div>
+                    </div>
+                `).join('') : '<div style="color: #666; text-align: center; padding: 10px;">Agrega más fotos para análisis de correlación</div>'}
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0;">⚡ Efectividad de Acciones</h4>
+                ${efectividadAcciones.length > 0 ? efectividadAcciones.map(accion => `
+                    <div style="padding: 10px; margin-bottom: 8px; background: ${accion.efectividad > 70 ? '#E8F5E8' : accion.efectividad > 40 ? '#FFF3E0' : '#FFEBEE'}; border-radius: 6px; border-left: 4px solid ${accion.efectividad > 70 ? '#4CAF50' : accion.efectividad > 40 ? '#FF9800' : '#f44336'};">
+                        <div style="font-weight: 600; color: #333;">${accion.accion}</div>
+                        <div style="font-size: 14px; color: #666;">${accion.resultado}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">Efectividad: ${accion.efectividad}%</div>
+                    </div>
+                `).join('') : '<div style="color: #666; text-align: center; padding: 10px;">Registra más acciones en las notas para análisis</div>'}
+            </div>
+        `;
+    }
+    
+    analizarCausaEfecto() {
+        const correlaciones = [];
+        const parametros = ['kh', 'calcio', 'nitratos', 'fosfatos', 'temperatura'];
+        
+        // Analizar correlaciones entre parámetros
+        for (let i = 0; i < parametros.length; i++) {
+            for (let j = i + 1; j < parametros.length; j++) {
+                const param1 = parametros[i];
+                const param2 = parametros[j];
+                
+                const datos1 = this.parametros.filter(p => p[param1] !== null).map(p => p[param1]);
+                const datos2 = this.parametros.filter(p => p[param2] !== null).map(p => p[param2]);
+                
+                if (datos1.length >= 5 && datos2.length >= 5) {
+                    const correlacion = this.calcularCorrelacion(datos1.slice(-10), datos2.slice(-10));
+                    
+                    if (Math.abs(correlacion) > 0.3) {
+                        const relaciones = {
+                            'kh-calcio': 'KH y Calcio están relacionados',
+                            'nitratos-fosfatos': 'Nitratos y Fosfatos siguen patrones similares',
+                            'kh-nitratos': correlacion > 0 ? 'Cuando KH sube, Nitratos tienden a subir' : 'Cuando KH baja, Nitratos tienden a subir',
+                            'calcio-nitratos': correlacion > 0 ? 'Calcio alto coincide con Nitratos altos' : 'Calcio alto coincide con Nitratos bajos'
+                        };
+                        
+                        const key = `${param1}-${param2}`;
+                        if (relaciones[key]) {
+                            correlaciones.push({
+                                relacion: relaciones[key],
+                                descripcion: correlacion > 0 ? 'Correlación positiva detectada' : 'Correlación negativa detectada',
+                                fuerza: Math.abs(correlacion)
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        return correlaciones;
+    }
+    
+    analizarImpactoCambios() {
+        const impactos = [];
+        const cambiosAgua = this.parametros.filter(p => 
+            p.notas && p.notas.toLowerCase().includes('cambio')
+        );
+        
+        cambiosAgua.forEach(cambio => {
+            const fechaCambio = new Date(cambio.fecha);
+            const parametroAntes = this.parametros.find(p => {
+                const fecha = new Date(p.fecha);
+                return fecha < fechaCambio && (fechaCambio - fecha) <= 7 * 24 * 60 * 60 * 1000;
+            });
+            
+            const parametroDespues = this.parametros.find(p => {
+                const fecha = new Date(p.fecha);
+                return fecha > fechaCambio && (fecha - fechaCambio) <= 7 * 24 * 60 * 60 * 1000;
+            });
+            
+            if (parametroAntes && parametroDespues) {
+                ['nitratos', 'fosfatos', 'kh'].forEach(param => {
+                    if (parametroAntes[param] && parametroDespues[param]) {
+                        const cambioValor = parametroDespues[param] - parametroAntes[param];
+                        const porcentajeCambio = (cambioValor / parametroAntes[param]) * 100;
+                        
+                        if (Math.abs(porcentajeCambio) > 10) {
+                            impactos.push({
+                                parametro: param.charAt(0).toUpperCase() + param.slice(1),
+                                efecto: `${cambioValor > 0 ? 'Subió' : 'Bajó'} ${Math.abs(porcentajeCambio).toFixed(1)}%`,
+                                efectivo: (param === 'nitratos' || param === 'fosfatos') ? cambioValor < 0 : Math.abs(cambioValor) < parametroAntes[param] * 0.1,
+                                fecha: cambio.fecha.split('-').reverse().join('/')
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        return impactos.slice(-5); // Últimos 5 cambios
+    }
+    
+    analizarCorrelacionFotos() {
+        const correlaciones = [];
+        const totalFotos = Object.values(this.fotos).reduce((sum, especies) => sum + especies.length, 0);
+        
+        if (totalFotos < 5) return correlaciones;
+        
+        // Analizar períodos con más/menos fotos vs parámetros
+        const ultimosMeses = this.parametros.filter(p => {
+            const fecha = new Date(p.fecha);
+            const hace3Meses = new Date();
+            hace3Meses.setMonth(hace3Meses.getMonth() - 3);
+            return fecha >= hace3Meses;
+        });
+        
+        if (ultimosMeses.length >= 5) {
+            const promedioNitratos = ultimosMeses.reduce((sum, p) => sum + (p.nitratos || 0), 0) / ultimosMeses.length;
+            const promedioKH = ultimosMeses.reduce((sum, p) => sum + (p.kh || 0), 0) / ultimosMeses.length;
+            
+            if (promedioNitratos < 8) {
+                correlaciones.push({
+                    insight: 'Condiciones óptimas para fotografía',
+                    detalle: `Con nitratos promedio de ${promedioNitratos.toFixed(1)}ppm, tus corales se ven saludables en las fotos`
+                });
+            }
+            
+            if (promedioKH >= 8 && promedioKH <= 10) {
+                correlaciones.push({
+                    insight: 'KH estable = corales fotogénicos',
+                    detalle: `Tu KH estable (${promedioKH.toFixed(1)}) coincide con el período de más fotos`
+                });
+            }
+        }
+        
+        return correlaciones;
+    }
+    
+    analizarEfectividadAcciones() {
+        const acciones = [];
+        const accionesComunes = [
+            { keyword: 'cambio', nombre: 'Cambios de agua' },
+            { keyword: 'dosif', nombre: 'Dosificación' },
+            { keyword: 'limpi', nombre: 'Limpieza' },
+            { keyword: 'aliment', nombre: 'Ajuste alimentación' }
+        ];
+        
+        accionesComunes.forEach(accion => {
+            const registros = this.parametros.filter(p => 
+                p.notas && p.notas.toLowerCase().includes(accion.keyword)
+            );
+            
+            if (registros.length >= 2) {
+                let mejoras = 0;
+                let total = 0;
+                
+                registros.forEach(registro => {
+                    const fechaAccion = new Date(registro.fecha);
+                    const despues = this.parametros.find(p => {
+                        const fecha = new Date(p.fecha);
+                        return fecha > fechaAccion && (fecha - fechaAccion) <= 10 * 24 * 60 * 60 * 1000;
+                    });
+                    
+                    if (despues) {
+                        total++;
+                        // Evaluar si hubo mejora en parámetros críticos
+                        if ((registro.nitratos && despues.nitratos && despues.nitratos < registro.nitratos) ||
+                            (registro.fosfatos && despues.fosfatos && despues.fosfatos < registro.fosfatos) ||
+                            (registro.kh && despues.kh && Math.abs(despues.kh - 8.5) < Math.abs(registro.kh - 8.5))) {
+                            mejoras++;
+                        }
+                    }
+                });
+                
+                if (total > 0) {
+                    const efectividad = Math.round((mejoras / total) * 100);
+                    acciones.push({
+                        accion: accion.nombre,
+                        resultado: `${mejoras} de ${total} veces mejoraron los parámetros`,
+                        efectividad
+                    });
+                }
+            }
+        });
+        
+        return acciones;
+    }
+    
+    calcularCorrelacion(x, y) {
+        const n = Math.min(x.length, y.length);
+        if (n < 3) return 0;
+        
+        const xSlice = x.slice(0, n);
+        const ySlice = y.slice(0, n);
+        
+        const sumX = xSlice.reduce((a, b) => a + b, 0);
+        const sumY = ySlice.reduce((a, b) => a + b, 0);
+        const sumXY = xSlice.reduce((sum, xi, i) => sum + xi * ySlice[i], 0);
+        const sumXX = xSlice.reduce((sum, xi) => sum + xi * xi, 0);
+        const sumYY = ySlice.reduce((sum, yi) => sum + yi * yi, 0);
+        
+        const numerator = n * sumXY - sumX * sumY;
+        const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+        
+        return denominator === 0 ? 0 : numerator / denominator;
+    }
+    
+    setupBioTabs() {
+        document.querySelectorAll('.bio-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.bio-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.bio-content').forEach(c => c.classList.remove('active'));
+                
+                e.target.classList.add('active');
+                document.getElementById(e.target.dataset.bio).classList.add('active');
+                
+                // Renderizar contenido específico
+                if (e.target.dataset.bio === 'mapa') {
+                    this.renderMapaTanque();
+                } else if (e.target.dataset.bio === 'crecimiento') {
+                    this.renderAnalisisCrecimiento();
+                }
+            });
+        });
+    }
+    
+    renderBiologico() {
+        this.renderInventario();
+        this.renderEventos();
+    }
+    
+    renderInventario() {
+        const container = document.getElementById('lista-inventario');
+        if (!container) return;
+        
+        if (this.inventario.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">🐠 No hay corales en el inventario<br><small>Agrega tu primer coral para comenzar</small></div>';
+            return;
+        }
+        
+        container.innerHTML = this.inventario.map((coral, index) => {
+            const estadoColors = {
+                excelente: '#4CAF50',
+                bueno: '#8BC34A', 
+                regular: '#FF9800',
+                malo: '#f44336'
+            };
+            
+            const estadoIcons = {
+                excelente: '🟢',
+                bueno: '🟡',
+                regular: '🟠', 
+                malo: '🔴'
+            };
+            
+            return `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid ${estadoColors[coral.estado]};">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <h4 style="margin: 0 0 5px 0; color: #333;">${coral.nombre}</h4>
+                            <div style="font-size: 14px; color: #666;">Agregado: ${coral.fecha.split('-').reverse().join('/')}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 18px; margin-bottom: 5px;">${estadoIcons[coral.estado]}</div>
+                            <div style="font-size: 12px; color: ${estadoColors[coral.estado]}; font-weight: 600; text-transform: uppercase;">${coral.estado}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <div style="font-size: 14px; color: #666;">
+                            💰 Costo: $${coral.costo || 0}
+                        </div>
+                        <div style="font-size: 14px; color: #666;">
+                            🗺️ Posición: ${coral.x || 0}%, ${coral.y || 0}%
+                        </div>
+                    </div>
+                    
+                    ${coral.notas ? `<div style="font-size: 14px; color: #777; font-style: italic; margin-bottom: 10px;">${coral.notas}</div>` : ''}
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="app.editarCoral(${index})" style="flex: 1; padding: 8px; background: #2196F3; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">✏️ Editar</button>
+                        <button onclick="app.verHistorialCoral(${index})" style="flex: 1; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">📈 Historial</button>
+                        <button onclick="app.eliminarCoral(${index})" style="flex: 1; padding: 8px; background: #f44336; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    renderEventos() {
+        const container = document.getElementById('lista-eventos');
+        if (!container) return;
+        
+        if (this.eventos.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">📅 No hay eventos registrados<br><small>Registra eventos importantes de tus corales</small></div>';
+            return;
+        }
+        
+        const eventosOrdenados = [...this.eventos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        
+        container.innerHTML = eventosOrdenados.map((evento, index) => {
+            const tipoColors = {
+                adquisicion: '#4CAF50',
+                muerte: '#f44336',
+                enfermedad: '#FF9800',
+                reproduccion: '#9C27B0',
+                cambio: '#2196F3',
+                otro: '#607D8B'
+            };
+            
+            const tipoIcons = {
+                adquisicion: '🛒',
+                muerte: '💀',
+                enfermedad: '🦠',
+                reproduccion: '🐣',
+                cambio: '🔄',
+                otro: '📝'
+            };
+            
+            return `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid ${tipoColors[evento.tipo]};">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 24px;">${tipoIcons[evento.tipo]}</span>
+                            <div>
+                                <div style="font-weight: 600; color: #333; text-transform: capitalize;">${evento.tipo.replace('_', ' ')}</div>
+                                <div style="font-size: 14px; color: #666;">${evento.fecha.split('-').reverse().join('/')}</div>
+                            </div>
+                        </div>
+                        <button onclick="app.eliminarEvento(${this.eventos.indexOf(evento)})" style="width: 24px; height: 24px; background: #f44336; color: white; border: none; border-radius: 50%; font-size: 12px; cursor: pointer;">×</button>
+                    </div>
+                    
+                    ${evento.coral ? `<div style="font-size: 14px; color: #666; margin-bottom: 8px;">🐠 Coral: ${evento.coral}</div>` : ''}
+                    
+                    <div style="font-size: 14px; color: #333;">${evento.descripcion}</div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    renderMapaTanque() {
+        const container = document.getElementById('mapa-tanque');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0; text-align: center;">🗺️ Mapa del Tanque</h4>
+                <div id="tanque-visual" style="position: relative; width: 100%; height: 300px; background: linear-gradient(180deg, #87CEEB 0%, #4682B4 100%); border-radius: 8px; border: 3px solid #2F4F4F; overflow: hidden;">
+                    ${this.inventario.map((coral, index) => `
+                        <div onclick="app.mostrarInfoCoral(${index})" style="
+                            position: absolute;
+                            left: ${coral.x || 50}%;
+                            top: ${coral.y || 50}%;
+                            width: 20px;
+                            height: 20px;
+                            background: ${this.getCoralColor(coral.estado)};
+                            border-radius: 50%;
+                            border: 2px solid white;
+                            cursor: pointer;
+                            transform: translate(-50%, -50%);
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            transition: transform 0.2s;
+                        " onmouseover="this.style.transform='translate(-50%, -50%) scale(1.2)'" onmouseout="this.style.transform='translate(-50%, -50%) scale(1)'" title="${coral.nombre}">
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 15px; font-size: 12px; color: #666; text-align: center;">
+                    Haz clic en los puntos para ver detalles del coral
+                </div>
+            </div>
+        `;
+    }
+    
+    renderAnalisisCrecimiento() {
+        const container = document.getElementById('analisis-crecimiento');
+        if (!container) return;
+        
+        const analisis = this.calcularCrecimiento();
+        
+        container.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0;">📏 Análisis de Crecimiento</h4>
+                ${analisis.length > 0 ? analisis.map(item => `
+                    <div style="padding: 15px; margin-bottom: 10px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #4CAF50;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 8px;">${item.especie}</div>
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">📸 Fotos analizadas: ${item.totalFotos}</div>
+                        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">📅 Período: ${item.periodo}</div>
+                        <div style="font-size: 14px; color: #4CAF50; font-weight: 500;">${item.crecimiento}</div>
+                    </div>
+                `).join('') : '<div style="text-align: center; padding: 40px; color: #666;">📏 No hay suficientes fotos para análisis<br><small>Agrega más fotos con el tiempo para ver el crecimiento</small></div>'}
+            </div>
+        `;
+    }
+    
+    agregarCoral() {
+        document.getElementById('coral-modal').style.display = 'flex';
+        document.getElementById('coral-nombre').focus();
+    }
+    
+    guardarCoral() {
+        const nombre = document.getElementById('coral-nombre').value.trim();
+        const costo = parseFloat(document.getElementById('coral-costo').value) || 0;
+        const estado = document.getElementById('coral-estado').value;
+        const x = parseInt(document.getElementById('coral-x').value) || 50;
+        const y = parseInt(document.getElementById('coral-y').value) || 50;
+        const notas = document.getElementById('coral-notas').value.trim();
+        
+        if (!nombre) {
+            alert('Por favor ingresa el nombre del coral');
+            return;
+        }
+        
+        const coral = {
+            id: Date.now(),
+            nombre,
+            costo,
+            estado,
+            x: Math.max(0, Math.min(100, x)),
+            y: Math.max(0, Math.min(100, y)),
+            notas,
+            fecha: new Date().toISOString().split('T')[0]
+        };
+        
+        this.inventario.push(coral);
+        localStorage.setItem('inventario', JSON.stringify(this.inventario));
+        
+        this.cancelarCoral();
+        this.renderInventario();
+        this.mostrarConfirmacion('🐠 Coral agregado al inventario');
+    }
+    
+    cancelarCoral() {
+        document.getElementById('coral-modal').style.display = 'none';
+        document.getElementById('coral-nombre').value = '';
+        document.getElementById('coral-costo').value = '';
+        document.getElementById('coral-estado').value = 'excelente';
+        document.getElementById('coral-x').value = '';
+        document.getElementById('coral-y').value = '';
+        document.getElementById('coral-notas').value = '';
+    }
+    
+    agregarEvento() {
+        // Llenar select de corales
+        const select = document.getElementById('evento-coral');
+        select.innerHTML = '<option value="">Seleccionar coral...</option>' + 
+            this.inventario.map(coral => `<option value="${coral.nombre}">${coral.nombre}</option>`).join('');
+        
+        document.getElementById('evento-modal').style.display = 'flex';
+    }
+    
+    guardarEvento() {
+        const tipo = document.getElementById('evento-tipo').value;
+        const coral = document.getElementById('evento-coral').value;
+        const descripcion = document.getElementById('evento-descripcion').value.trim();
+        
+        if (!descripcion) {
+            alert('Por favor ingresa una descripción del evento');
+            return;
+        }
+        
+        const evento = {
+            id: Date.now(),
+            tipo,
+            coral,
+            descripcion,
+            fecha: new Date().toISOString().split('T')[0]
+        };
+        
+        this.eventos.push(evento);
+        localStorage.setItem('eventos', JSON.stringify(this.eventos));
+        
+        this.cancelarEvento();
+        this.renderEventos();
+        this.mostrarConfirmacion('📅 Evento registrado');
+    }
+    
+    cancelarEvento() {
+        document.getElementById('evento-modal').style.display = 'none';
+        document.getElementById('evento-tipo').value = 'adquisicion';
+        document.getElementById('evento-coral').value = '';
+        document.getElementById('evento-descripcion').value = '';
+    }
+    
+    eliminarCoral(index) {
+        if (confirm('¿Eliminar este coral del inventario?')) {
+            this.inventario.splice(index, 1);
+            localStorage.setItem('inventario', JSON.stringify(this.inventario));
+            this.renderInventario();
+            this.mostrarConfirmacion('🗑️ Coral eliminado');
+        }
+    }
+    
+    eliminarEvento(index) {
+        if (confirm('¿Eliminar este evento?')) {
+            this.eventos.splice(index, 1);
+            localStorage.setItem('eventos', JSON.stringify(this.eventos));
+            this.renderEventos();
+            this.mostrarConfirmacion('🗑️ Evento eliminado');
+        }
+    }
+    
+    getCoralColor(estado) {
+        const colors = {
+            excelente: '#4CAF50',
+            bueno: '#8BC34A',
+            regular: '#FF9800', 
+            malo: '#f44336'
+        };
+        return colors[estado] || '#999';
+    }
+    
+    mostrarInfoCoral(index) {
+        const coral = this.inventario[index];
+        alert(`🐠 ${coral.nombre}\n🟢 Estado: ${coral.estado}\n💰 Costo: $${coral.costo}\n📅 Agregado: ${coral.fecha.split('-').reverse().join('/')}${coral.notas ? `\n📝 ${coral.notas}` : ''}`);
+    }
+    
+    calcularCrecimiento() {
+        const analisis = [];
+        
+        Object.keys(this.fotos).forEach(especie => {
+            const fotos = this.fotos[especie];
+            if (fotos.length >= 3) {
+                const fotosOrdenadas = fotos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+                const primera = fotosOrdenadas[0];
+                const ultima = fotosOrdenadas[fotosOrdenadas.length - 1];
+                
+                const diasTranscurridos = Math.floor((new Date(ultima.fecha) - new Date(primera.fecha)) / (1000 * 60 * 60 * 24));
+                const mesesTranscurridos = diasTranscurridos / 30;
+                
+                let crecimiento = 'Crecimiento moderado detectado';
+                if (fotos.length >= 10) {
+                    crecimiento = 'Crecimiento acelerado - muchas fotos registradas';
+                } else if (mesesTranscurridos > 3) {
+                    crecimiento = 'Crecimiento lento pero constante';
+                }
+                
+                analisis.push({
+                    especie: especie.charAt(0).toUpperCase() + especie.slice(1),
+                    totalFotos: fotos.length,
+                    periodo: `${Math.round(mesesTranscurridos)} meses`,
+                    crecimiento
+                });
+            }
+        });
+        
+        return analisis;
     }
     
     renderMetasLogros() {

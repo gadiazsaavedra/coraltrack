@@ -20,6 +20,7 @@
                 <button class="tab-btn active" data-tab="parametros">Parámetros</button>
                 <button class="tab-btn" data-tab="avanzado">Avanzado</button>
                 <button class="tab-btn" data-tab="galeria">Galería</button>
+                <button class="tab-btn" data-tab="biologico">Biológico</button>
             </nav>
         </header>
 
@@ -159,6 +160,16 @@
                     </div>
                     
                     <div class="advanced-section">
+                        <h3>🔮 Análisis Predictivo</h3>
+                        <div id="analisis-predictivo"></div>
+                    </div>
+                    
+                    <div class="advanced-section">
+                        <h3>🔗 Correlaciones Inteligentes</h3>
+                        <div id="correlaciones"></div>
+                    </div>
+                    
+                    <div class="advanced-section">
                         <h3>🏆 Metas y Logros</h3>
                         <div id="metas-logros"></div>
                     </div>
@@ -183,6 +194,34 @@
                     <button class="btn-add-photo" onclick="app.cargarFoto('palythoa')">📷 Agregar Foto</button>
                 </div>
             </section>
+
+            <!-- Módulo 3: Biológico -->
+            <section id="biologico" class="tab-content">
+                <div class="bio-tabs">
+                    <button class="bio-tab active" data-bio="inventario">📋 Inventario</button>
+                    <button class="bio-tab" data-bio="mapa">🗺️ Mapa Tanque</button>
+                    <button class="bio-tab" data-bio="eventos">📅 Eventos</button>
+                    <button class="bio-tab" data-bio="crecimiento">📏 Crecimiento</button>
+                </div>
+
+                <div id="inventario" class="bio-content active">
+                    <button class="btn-primary" onclick="app.agregarCoral()" style="margin-bottom: 15px;">➕ Agregar Coral</button>
+                    <div id="lista-inventario"></div>
+                </div>
+
+                <div id="mapa" class="bio-content">
+                    <div id="mapa-tanque"></div>
+                </div>
+
+                <div id="eventos" class="bio-content">
+                    <button class="btn-primary" onclick="app.agregarEvento()" style="margin-bottom: 15px;">➕ Registrar Evento</button>
+                    <div id="lista-eventos"></div>
+                </div>
+
+                <div id="crecimiento" class="bio-content">
+                    <div id="analisis-crecimiento"></div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -205,6 +244,80 @@
             <div class="photo-note-actions">
                 <button id="cancelar-nota" class="btn-secondary">❌ Cancelar</button>
                 <button id="guardar-foto-nota" class="btn-primary">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar coral -->
+    <div id="coral-modal" class="photo-note-modal" style="display: none;">
+        <div class="photo-note-content" style="max-width: 500px;">
+            <h3>🐠 Agregar Coral al Inventario</h3>
+            <div style="margin-bottom: 15px;">
+                <label>Nombre/Especie:</label>
+                <input type="text" id="coral-nombre" placeholder="Ej: Montipora digitata" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label>Costo ($):</label>
+                    <input type="number" id="coral-costo" placeholder="0" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label>Estado:</label>
+                    <select id="coral-estado" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="excelente">🟢 Excelente</option>
+                        <option value="bueno">🟡 Bueno</option>
+                        <option value="regular">🟠 Regular</option>
+                        <option value="malo">🔴 Malo</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Ubicación en tanque:</label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="number" id="coral-x" placeholder="X" min="0" max="100" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <input type="number" id="coral-y" placeholder="Y" min="0" max="100" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <span style="font-size: 12px; color: #666; align-self: center;">% desde esquina superior izquierda</span>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Notas:</label>
+                <textarea id="coral-notas" placeholder="Observaciones, origen, características..." rows="2" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+            </div>
+            <div class="photo-note-actions">
+                <button onclick="app.cancelarCoral()" class="btn-secondary">❌ Cancelar</button>
+                <button onclick="app.guardarCoral()" class="btn-primary">💾 Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar evento -->
+    <div id="evento-modal" class="photo-note-modal" style="display: none;">
+        <div class="photo-note-content">
+            <h3>📅 Registrar Evento</h3>
+            <div style="margin-bottom: 15px;">
+                <label>Tipo de evento:</label>
+                <select id="evento-tipo" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="adquisicion">🛒 Nueva adquisición</option>
+                    <option value="muerte">💀 Muerte</option>
+                    <option value="enfermedad">🦠 Enfermedad</option>
+                    <option value="reproduccion">🐣 Reproducción</option>
+                    <option value="cambio">🔄 Cambio de ubicación</option>
+                    <option value="otro">📝 Otro</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Coral afectado:</label>
+                <select id="evento-coral" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">Seleccionar coral...</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Descripción:</label>
+                <textarea id="evento-descripcion" placeholder="Detalles del evento..." rows="3" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+            </div>
+            <div class="photo-note-actions">
+                <button onclick="app.cancelarEvento()" class="btn-secondary">❌ Cancelar</button>
+                <button onclick="app.guardarEvento()" class="btn-primary">💾 Guardar</button>
             </div>
         </div>
     </div>

@@ -1511,6 +1511,43 @@ button, input, textarea, select {
     transition: transform 0.2s ease;
 }
 
+.bio-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+}
+
+.bio-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid #ddd;
+    background: white;
+    color: #666;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.bio-tab.active {
+    background: #2196F3;
+    color: white;
+    border-color: #2196F3;
+}
+
+.bio-content {
+    display: none;
+}
+
+.bio-content.active {
+    display: block;
+}
+
 .btn-add-photo:hover {
     transform: scale(1.1);
 }
