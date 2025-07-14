@@ -475,7 +475,7 @@ class CoralTrack {
                 
                 const parametrosConFecha = this.parametros.filter(p => p[param] !== null && p[param] !== undefined);
                 const valores = parametrosConFecha.map(p => p[param]);
-                const fechas = parametrosConFecha.map(p => new Date(p.fecha).toLocaleDateString());
+                const fechas = parametrosConFecha.map(p => p.fecha.split('-').reverse().join('/'));
                 
                 if (valores.length < 2) return;
                 
@@ -562,7 +562,7 @@ class CoralTrack {
         historialContainer.innerHTML = historialOrdenado.map((p, index) => `
             <div class="historial-item">
                 <div class="historial-header">
-                    <div class="historial-date">${new Date(p.fecha).toLocaleDateString()}</div>
+                    <div class="historial-date">${p.fecha.split('-').reverse().join('/')}</div>
                     <div class="historial-actions">
                         <button class="btn-edit" onclick="app.editarMedicion(${this.parametros.indexOf(p)})" title="Editar">✏️</button>
                         <button class="btn-delete" onclick="app.eliminarMedicion(${this.parametros.indexOf(p)})" title="Eliminar">🗑️</button>
@@ -593,7 +593,7 @@ class CoralTrack {
                 <div class="photo-item" data-index="${index}" data-especie="${especie}">
                     <img src="${foto.src}" alt="Coral ${especie}" loading="lazy" draggable="false">
                     <div class="photo-overlay">
-                        <div class="photo-date">${new Date(foto.fecha).toLocaleDateString()}</div>
+                        <div class="photo-date">${foto.fecha.split('T')[0].split('-').reverse().join('/')}</div>
                         ${foto.nota ? `<div class="photo-note-preview">📝 ${foto.nota.substring(0, 30)}${foto.nota.length > 30 ? '...' : ''}</div>` : ''}
                     </div>
                     <div class="photo-actions">
@@ -619,7 +619,7 @@ class CoralTrack {
         
         modal.style.display = 'block';
         modalImg.src = src;
-        modalDate.textContent = new Date(fecha).toLocaleDateString();
+        modalDate.textContent = fecha.split('T')[0].split('-').reverse().join('/');
         modalNote.textContent = nota || 'Sin notas';
     }
     
@@ -1609,7 +1609,7 @@ class CoralTrack {
         
         const parametrosConFecha = this.parametros.filter(p => p[param] !== null && p[param] !== undefined);
         const valores = parametrosConFecha.map(p => p[param]);
-        const fechas = parametrosConFecha.map(p => new Date(p.fecha).toLocaleDateString());
+        const fechas = parametrosConFecha.map(p => p.fecha.split('-').reverse().join('/'));
         
         content.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
