@@ -1516,22 +1516,28 @@ button, input, textarea, select {
     gap: 0.5rem;
     margin-bottom: 1.5rem;
     overflow-x: auto;
+    padding: 0.25rem;
 }
 
 .bio-tab {
     flex: 1;
-    min-width: 80px;
-    padding: 0.75rem 0.5rem;
+    min-width: 70px;
+    padding: 1rem 0.4rem;
     border: 2px solid #ddd;
     background: white;
     color: #666;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.3s;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     text-align: center;
     white-space: nowrap;
+    min-height: 48px;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .bio-tab.active {
