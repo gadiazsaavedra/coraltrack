@@ -1438,58 +1438,7 @@ button, input, textarea, select {
     width: 100% !important;
     height: 100% !important;
 }
-/* Botones de acciones en fotos */
-.photo-actions {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    display: flex;
-    gap: 3px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
 
-.photo-item:hover .photo-actions {
-    opacity: 1;
-}
-
-.photo-edit-note,
-.photo-edit,
-.photo-delete {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    margin: 2px;
-}
-
-.photo-edit-note {
-    background: #2196F3;
-    color: white;
-}
-
-.photo-edit {
-    background: #4CAF50;
-    color: white;
-}
-
-.photo-delete {
-    background: #f44336;
-    color: white;
-}
-
-/* Mobile - mostrar botones siempre */
-@media (max-width: 768px) {
-    .photo-actions {
-        opacity: 1;
-    }
-}
 /* Botón flotante para agregar fotos */
 .btn-add-photo {
     position: fixed;
@@ -1582,13 +1531,31 @@ button, input, textarea, select {
 /* Actualizar botones de fotos para mejor usabilidad móvil */
 .photo-actions {
     position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.photo-delete-corner {
+    position: absolute;
     top: 8px;
     right: 8px;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.photo-actions-column {
+    position: absolute;
+    top: 8px;
+    left: 8px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    opacity: 1;
-    max-width: 80px;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 .photo-edit-note,
@@ -1596,18 +1563,19 @@ button, input, textarea, select {
 .photo-delete,
 .photo-move-up,
 .photo-move-down {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border: none;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-    margin: 1px;
+    margin: 0;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 .photo-edit-note {

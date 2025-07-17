@@ -600,10 +600,12 @@ class CoralTrack {
                         <div class="photo-date">${foto.fecha.split('T')[0].split('-').reverse().join('/')}</div>
                         ${foto.nota ? `<div class="photo-note-preview">📝 ${foto.nota.substring(0, 30)}${foto.nota.length > 30 ? '...' : ''}</div>` : ''}
                     </div>
-                    <div class="photo-actions">
-                        <button class="photo-edit-note" onclick="event.stopPropagation(); app.editarNota('${especie}', ${index})" title="Editar nota">📝</button>
-                        <button class="photo-edit" onclick="event.stopPropagation(); app.editarFoto('${especie}', ${index})" title="Cambiar foto">📷</button>
-                        <button class="photo-delete" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})" title="Eliminar">×</button>
+                    <div class="photo-actions" style="opacity: 0; transition: opacity 0.3s;">
+                        <button class="photo-delete photo-delete-corner" onclick="event.stopPropagation(); app.eliminarFoto('${especie}', ${index})" title="Eliminar">×</button>
+                        <div class="photo-actions-column">
+                            <button class="photo-edit-note" onclick="event.stopPropagation(); app.editarNota('${especie}', ${index})" title="Editar nota">📝</button>
+                            <button class="photo-edit" onclick="event.stopPropagation(); app.editarFoto('${especie}', ${index})" title="Cambiar foto">📷</button>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -757,6 +759,8 @@ class CoralTrack {
             let startPos = null;
             let hasMoved = false;
             let draggedOver = null;
+            let longPressTimer = null;
+            let isLongPress = false;
             
             photo.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.photo-actions')) return;
@@ -767,16 +771,54 @@ class CoralTrack {
                 };
                 hasMoved = false;
                 draggedOver = null;
+                isLongPress = false;
+                
+                // Iniciar timer para long press
+                longPressTimer = setTimeout(() => {
+                    if (!hasMoved) {
+                        isLongPress = true;
+                        // Mostrar botones de acción
+                        const actions = photo.querySelector('.photo-actions');
+                        if (actions) {
+                            actions.style.opacity = '1';
+                            // Vibrar si está disponible
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                        }
+                    }
+                }, 500); // 500ms para long press
             });
             
             photo.addEventListener('touchmove', (e) => {
                 if (!startPos) return;
+                
+                // Prevenir scroll durante el arrastre
+                e.preventDefault();
                 
                 const deltaX = Math.abs(e.touches[0].clientX - startPos.x);
                 const deltaY = Math.abs(e.touches[0].clientY - startPos.y);
                 
                 if (deltaX > 15 || deltaY > 15) {
                     hasMoved = true;
+                    // Cancelar long press si hay movimiento
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    
+                    // Ocultar botones si estaban visibles
+                    const actions = photo.querySelector('.photo-actions');
+                    if (actions) {
+                        actions.style.opacity = '0';
+                    }
+                    
+                    // Prevenir scroll del contenedor
+                    const tabContent = document.getElementById('galeria');
+                    if (tabContent) {
+                        tabContent.style.overflow = 'hidden';
+                    }
+                    
                     photo.style.opacity = '0.7';
                     photo.style.zIndex = '1000';
                     photo.style.transform = `translate(${e.touches[0].clientX - startPos.x}px, ${e.touches[0].clientY - startPos.y}px) scale(1.05)`;
@@ -802,6 +844,12 @@ class CoralTrack {
             });
             
             photo.addEventListener('touchend', (e) => {
+                // Limpiar timer
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                
                 if (!startPos) return;
                 
                 // Limpiar highlight
@@ -826,8 +874,8 @@ class CoralTrack {
                         setTimeout(() => this.renderFotos(), 50);
                         return;
                     }
-                } else if (!hasMoved) {
-                    // Solo clic, abrir foto
+                } else if (!hasMoved && !isLongPress) {
+                    // Solo clic corto, abrir foto
                     const fotoData = this.fotos[especie][parseInt(photo.dataset.index)];
                     if (fotoData) {
                         this.mostrarFoto(fotoData.src, fotoData.fecha, fotoData.nota || '');
@@ -839,9 +887,27 @@ class CoralTrack {
                 photo.style.transform = 'scale(1)';
                 photo.style.zIndex = '';
                 photo.style.pointerEvents = '';
+                
+                // Restaurar scroll
+                const tabContent = document.getElementById('galeria');
+                if (tabContent) {
+                    tabContent.style.overflow = '';
+                }
+                
                 startPos = null;
                 hasMoved = false;
                 draggedOver = null;
+                isLongPress = false;
+            });
+            
+            // Ocultar botones al tocar fuera
+            document.addEventListener('touchstart', (e) => {
+                if (!photo.contains(e.target)) {
+                    const actions = photo.querySelector('.photo-actions');
+                    if (actions) {
+                        actions.style.opacity = '0';
+                    }
+                }
             });
         });
     }
